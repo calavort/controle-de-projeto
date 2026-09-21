@@ -1807,6 +1807,88 @@ function renderIndicators(){
   }
 }
 
+/* ---- Cópia de segurança ---------------------------------------------------
+   O registro deste programa é um banco SQLite, e não arquivos soltos: a cópia
+   sai e volta inteira, num .zip só. Antes de restaurar, o programa guarda
+   sozinho o registro atual em data/backups/ — dá para voltar atrás. */
+
+const ROTULOS_DO_REGISTRO = {
+  projects: 'projetos',
+  project_stages: 'etapas',
+  activity_history: 'registros de atividade',
+  work_sessions: 'sessões de trabalho'
+};
+
+function descreverRegistro(resumo){
+  return Object.entries(ROTULOS_DO_REGISTRO)
+    .map(([chave, rotulo]) => `${resumo?.[chave] ?? 0} ${rotulo}`)
+    .join(' · ');
+}
+
+async function mostrarResumoDaCopia(){
+  const alvo = $('#copiaResumo');
+  if(!alvo) return;
+  try{
+    const resumo = await api('/api/copia/resumo');
+    alvo.textContent = `No registro agora: ${descreverRegistro(resumo.data ?? resumo)}.`;
+  }catch{
+    alvo.textContent = 'Não foi possível conferir o registro agora.';
+  }
+}
+
+async function exportarCopia(){
+  const botao = $('#exportarCopiaButton');
+  if(botao) botao.disabled = true;
+  try{
+    const resposta = await fetch('/api/copia/exportar');
+    if(!resposta.ok){
+      const erro = await resposta.json().catch(() => ({}));
+      throw new Error(erro.message || 'Não foi possível gerar a cópia.');
+    }
+    // O nome do arquivo vem do servidor, com a data e a hora.
+    const cabecalho = resposta.headers.get('Content-Disposition') || '';
+    const nome = /filename="([^"]+)"/.exec(cabecalho)?.[1] || 'controle-de-projeto.zip';
+    const conteudo = await resposta.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(conteudo);
+    link.download = nome;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+    showToast(`Cópia guardada em ${nome}.`);
+  }finally{
+    if(botao) botao.disabled = false;
+  }
+}
+
+async function importarCopia(arquivo){
+  const confirmado = await confirmAction({
+    title: 'Importar cópia de segurança',
+    message: `O registro atual será substituído pelo conteúdo de "${arquivo.name}". Uma cópia do registro de agora é guardada antes da troca, em data/backups.`,
+    confirmText: 'Importar'
+  });
+  if(!confirmado) return;
+
+  const botao = $('#importarCopiaButton');
+  if(botao) botao.disabled = true;
+  try{
+    const pacote = new FormData();
+    pacote.append('arquivo', arquivo);
+    const resposta = await fetch('/api/copia/importar', {method: 'POST', body: pacote});
+    const retorno = await resposta.json().catch(() => ({}));
+    if(!resposta.ok || retorno.ok === false){
+      throw new Error(retorno.message || 'Não foi possível importar a cópia.');
+    }
+    const dados = retorno.data || {};
+    showToast(`Cópia restaurada: ${descreverRegistro(dados.registro)}.`);
+    await mostrarResumoDaCopia();
+    // O programa inteiro passa a ler outro registro: recarregar evita telas
+    // mostrando o que acabou de deixar de existir.
+    setTimeout(() => window.location.reload(), 1200);
+  }finally{
+    if(botao) botao.disabled = false;
+  }
+}
+
 function renderSettings(){
   const view = $('#settings');
   if(!view) return;
@@ -1876,6 +1958,16 @@ function renderSettings(){
           <button type="button" class="btn danger" id="resetDataButton">Limpar dados</button>
         </div>
         <div class="form-section">
+          <div class="form-section-title">Cópia de segurança</div>
+          <div class="page-desc" style="margin:0 0 10px">Guarda o registro inteiro num arquivo — o banco de projetos e as estatísticas do Progresso de detalhamento. Serve para levar o registro para outra máquina ou para voltar atrás depois de um engano.</div>
+          <div class="page-desc" id="copiaResumo" style="margin:0 0 10px">Conferindo o registro…</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn" id="exportarCopiaButton">Exportar cópia</button>
+            <button type="button" class="btn" id="importarCopiaButton">Importar cópia</button>
+          </div>
+          <input type="file" id="copiaArquivo" accept=".zip,application/zip" hidden />
+        </div>
+        <div class="form-section">
           <div class="form-section-title">Versão</div>
           <div class="page-desc" style="margin:0 0 10px">Versão atual do programa e data de lançamento. Consulte as versões anteriores no menu suspenso.</div>
           <div class="form-grid">
@@ -1893,6 +1985,14 @@ function renderSettings(){
     $('#settingsForm', view).addEventListener('submit', saveSettings);
     $('#editTemplateButton', view)?.addEventListener('click', () => editStageTemplate().catch(error => showToast(error.message)));
     $('#resetDataButton', view)?.addEventListener('click', () => resetOperationalData().catch(error => showToast(error.message)));
+    $('#exportarCopiaButton', view)?.addEventListener('click', () => exportarCopia().catch(error => showToast(error.message)));
+    $('#importarCopiaButton', view)?.addEventListener('click', () => $('#copiaArquivo', view)?.click());
+    $('#copiaArquivo', view)?.addEventListener('change', event => {
+      const arquivo = event.target.files?.[0];
+      event.target.value = '';
+      if(arquivo) importarCopia(arquivo).catch(error => showToast(error.message));
+    });
+    mostrarResumoDaCopia();
     const versionSelect = $('#versionHistorySelect', view);
     versionSelect?.addEventListener('change', () => {
       const detail = $('#versionHistoryDetail', view);

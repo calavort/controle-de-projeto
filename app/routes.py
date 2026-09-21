@@ -3,8 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, Response, jsonify, render_template, request, send_file
 
+from .nuvem import ErroDeCopia, exportar_copia, importar_copia, resumo_do_registro
 from .paths import BASE_DIR
 from .service import ControleService
 
@@ -328,5 +329,40 @@ def create_app(service: ControleService | None = None) -> Flask:
     def export_report(report_type: str):
         path = svc.export_report(report_type)
         return send_file(path, as_attachment=True, download_name=Path(path).name)
+
+    # ---------------------------------------------------- copia de seguranca
+
+    @app.get("/api/copia/resumo")
+    def copia_resumo():
+        try:
+            return ok(resumo_do_registro())
+        except Exception as exc:
+            return fail(exc)
+
+    @app.get("/api/copia/exportar")
+    def copia_exportar():
+        try:
+            dados, nome = exportar_copia()
+        except ErroDeCopia as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 500)
+        return Response(
+            dados,
+            mimetype="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{nome}"'},
+        )
+
+    @app.post("/api/copia/importar")
+    def copia_importar():
+        enviado = request.files.get("arquivo")
+        if enviado is None:
+            return fail(ValueError("Escolha o arquivo da cópia."))
+        try:
+            return ok(importar_copia(enviado.read(), svc.db))
+        except ErroDeCopia as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 500)
 
     return app
