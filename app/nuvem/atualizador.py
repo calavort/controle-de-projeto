@@ -70,6 +70,7 @@ APP_FILES = (
     "app/nuvem/atualizador.py",
     "app/nuvem/copia.py",
     "app/nuvem/sincronizacao.py",
+    "ferramentas/publicar_release.py",
     "app/progresso_detalhamento/Progresso de detalhamento.py",
     "app/progresso_detalhamento/interface.html",
     "app/progresso_detalhamento/requirements.txt",
@@ -323,7 +324,7 @@ def open_url(url: str):
         raise UpdateError("A atualizacao exige uma conexao HTTPS.")
     request = urllib.request.Request(url, headers={
         "Accept": "application/vnd.github+json" if url.startswith("https://api.github.com/") else "application/octet-stream",
-        "User-Agent": "NotasDeEngenharia-Updater",
+        "User-Agent": "ControleDeProjeto-Updater",
         "X-GitHub-Api-Version": "2026-03-10",
     })
     return urllib.request.build_opener(_HttpsRedirect()).open(request, timeout=20)
@@ -355,7 +356,7 @@ def release_from_json(data: dict, current: dict) -> Release | None:
     if version_tuple(tag) <= version_tuple(current["version"]):
         return None
     version = tag.removeprefix("v")
-    name = f"NotasDeEngenharia-{version}.zip"
+    name = f"ControleDeProjeto-{version}.zip"
     asset = next((item for item in data.get("assets", []) if item.get("name") == name), None)
     if not asset:
         raise UpdateError(f"O release ainda nao possui o pacote {name}.")
