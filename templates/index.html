@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Controle de Projetos</title>
+<link rel="icon" href="/static/img/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/static/img/logo_controle_projetos.png" />
+<style>
+  :root{
+    --orange:#0078d4;
+    --orange-hover:#106ebe;
+    --orange-pressed:#005a9e;
+    --orange-soft:#eff6fc;
+    --orange-line:#c7e0f4;
+    --accent-orange:#ffaa00;
+    --accent-orange-soft:#fff4ce;
+    --bg:#f3f2f1;
+    --surface:#ffffff;
+    --surface-2:#faf9f8;
+    --hover:#f3f2f1;
+    --pressed:#edebe9;
+    --text:#323130;
+    --muted:#605e5c;
+    --subtle:#8a8886;
+    --disabled:#a19f9d;
+    --border:#edebe9;
+    --border-strong:#d2d0ce;
+    --success:#107c10;
+    --success-soft:#dff6dd;
+    --warning:#986f0b;
+    --warning-soft:#fff4ce;
+    --danger:#a80000;
+    --shadow:0 1.6px 3.6px rgba(0,0,0,.13),0 .3px .9px rgba(0,0,0,.11);
+    --shadow-hover:0 3.2px 7.2px rgba(0,0,0,.14),0 .6px 1.8px rgba(0,0,0,.11);
+    --radius:4px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    overflow:auto;
+    font-family:"Segoe UI",Tahoma,Arial,sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    font-size:13px;
+  }
+  button,input,select,textarea{font:inherit}
+  button{cursor:pointer}
+  svg{display:block}
+
+  .app{
+    height:100vh;
+    min-width:1180px;
+    display:grid;
+    grid-template-columns:236px minmax(0,1fr);
+    background:var(--bg);
+  }
+
+  /* SIDEBAR */
+  .sidebar{
+    min-width:0;
+    background:var(--surface);
+    border-right:1px solid var(--border-strong);
+    display:flex;
+    flex-direction:column;
+  }
+  .brand{
+    height:58px;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 17px;
+    border-bottom:1px solid var(--border);
+  }
+  .brand-icon{
+    width:30px;height:30px;border-radius:4px;
+    display:grid;place-items:center;
+    background:transparent;
+    color:var(--orange);
+    overflow:hidden;
+  }
+  .brand-icon svg{width:19px;height:19px}
+  .brand-icon img{width:30px;height:30px;display:block}
+  .brand-copy{min-width:0}
+  .brand-title{font-size:15px;font-weight:600;white-space:nowrap}
+  .brand-subtitle{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap}
+
+  .new-project{
+    height:34px;
+    margin:14px 14px 10px;
+    border:1px solid var(--orange);
+    border-radius:var(--radius);
+    background:var(--orange);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-weight:600;
+  }
+  .new-project:hover{background:var(--orange-hover);border-color:var(--orange-hover)}
+  .new-project svg{width:15px;height:15px}
+
+  .nav-label{
+    padding:12px 18px 6px;
+    font-size:10px;
+    font-weight:600;
+    color:var(--subtle);
+    text-transform:uppercase;
+    letter-spacing:.45px;
+  }
+  .nav{list-style:none;margin:0;padding:0 8px}
+  .nav-item{
+    height:38px;
+    width:100%;
+    border:0;
+    border-left:3px solid transparent;
+    border-radius:2px;
+    background:transparent;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:0 12px 0 11px;
+    color:var(--muted);
+    text-align:left;
+  }
+  .nav-item svg{width:18px;height:18px;color:var(--orange);stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .nav-item:hover{background:var(--hover);color:var(--text)}
+  .nav-item.active{
+    color:var(--text);
+    background:#f7f3f1;
+    border-left-color:var(--orange);
+    font-weight:600;
+  }
+  .nav-spacer{flex:1}
+  .sidebar-bottom{
+    border-top:1px solid var(--border);
+    padding:12px 14px 14px;
+  }
+  .current-mini{
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius);
+    padding:10px 11px;
+    background:var(--surface-2);
+  }
+  .current-mini-label{font-size:10px;color:var(--orange);font-weight:600;text-transform:uppercase;letter-spacing:.35px}
+  .current-mini-code{font-size:12px;font-weight:600;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .current-mini-name{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* MAIN */
+  .main{
+    min-width:0;
+    height:100vh;
+    display:grid;
+    grid-template-rows:48px 64px minmax(0,1fr) 28px;
+  }
+  .topbar{
+    background:var(--surface);
+    border-bottom:1px solid var(--border-strong);
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:0 20px;
+  }
+  .page-app-name{font-size:14px;font-weight:600;white-space:nowrap}
+  .search{
+    flex:1;
+    max-width:620px;
+    height:32px;
+    border:1px solid var(--border-strong);
+    border-radius:3px;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 10px;
+  }
+  .search:focus-within{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .search svg{width:15px;height:15px;stroke:var(--muted);fill:none;stroke-width:1.8}
+  .search input{border:0;outline:0;width:100%;color:var(--text);background:transparent}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .icon-btn{
+    width:34px;height:34px;border:0;border-radius:3px;background:transparent;display:grid;place-items:center;color:var(--muted)
+  }
+  .icon-btn:hover{background:var(--hover);color:var(--text)}
+  .icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#f4d7ca;color:#7a2507;display:grid;place-items:center;font-weight:600;font-size:11px;margin-left:6px}
+
+  .active-project-bar{
+    background:var(--surface);
+    border-bottom:1px solid var(--border-strong);
+    padding:9px 20px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .active-mark{width:4px;height:36px;background:var(--orange);border-radius:1px}
+  .active-copy{min-width:0;flex:1}
+  .active-label{font-size:10px;color:var(--orange);font-weight:600;text-transform:uppercase;letter-spacing:.35px}
+  .active-title{font-size:14px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .active-meta{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .active-actions{display:flex;gap:8px}
+
+  .btn{
+    height:32px;
+    border-radius:var(--radius);
+    padding:0 14px;
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--text);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    font-weight:600;
+  }
+  .btn:focus{outline:0}
+  .btn:focus-visible{box-shadow:0 0 0 2px var(--orange-line)}
+  .btn:hover{background:var(--hover);border-color:#8a8886}
+  .btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .active-actions .btn svg{color:var(--orange)}
+  .active-actions .btn:hover svg{color:var(--orange-hover)}
+  .btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+  .btn.primary:hover{background:var(--orange-hover);border-color:var(--orange-hover)}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--orange)}
+  .btn.ghost:hover{background:var(--orange-soft)}
+
+  .content{
+    min-height:0;
+    overflow:auto;
+    padding:22px 24px 34px;
+  }
+  .view{display:none;max-width:1480px;margin:0 auto}
+  .view.active{display:block}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .page-title{font-size:23px;font-weight:400;margin:0}
+  .page-desc{font-size:12px;color:var(--muted);margin-top:4px}
+  .section{margin-top:24px}
+  .section:first-child{margin-top:0}
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .section-title{font-size:15px;font-weight:600}
+  .section-link{border:0;background:transparent;color:var(--orange);padding:4px 2px}
+  .section-link:hover{text-decoration:underline}
+
+  /* ACTIVE PROJECT CARD */
+  .active-project-card{
+    background:var(--surface);
+    border:1px solid var(--border-strong);
+    box-shadow:var(--shadow);
+    border-radius:var(--radius);
+    display:grid;
+    grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);
+    min-height:160px;
+    overflow:hidden;
+  }
+  .active-main{padding:20px 22px}
+  .active-main-top{display:flex;align-items:flex-start;gap:14px}
+  .project-symbol{
+    width:50px;height:50px;border:1px solid var(--orange-line);border-radius:4px;background:var(--orange-soft);display:grid;place-items:center;color:var(--orange);flex:none
+  }
+  .project-symbol svg{width:27px;height:27px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .project-code{font-size:12px;color:var(--orange);font-weight:600;letter-spacing:.2px}
+  .project-name{font-size:20px;font-weight:600;margin-top:2px}
+  .project-client{font-size:12px;color:var(--muted);margin-top:3px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:18px;margin-top:19px}
+  .meta-item{min-width:120px}
+  .meta-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .meta-value{font-size:12px;font-weight:600;margin-top:3px}
+  .active-side{border-left:1px solid var(--border);padding:20px 22px;background:var(--surface-2);display:flex;flex-direction:column;justify-content:center}
+  .progress-label{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted)}
+  .progress-label strong{font-size:13px;color:var(--text)}
+  .progress{height:7px;background:#e1dfdd;border-radius:2px;overflow:hidden;margin:8px 0 14px}
+  .progress > span{display:block;position:relative;height:100%;width:68%;overflow:hidden;background:var(--orange)}
+  .progress > span::after{
+    content:"";
+    position:absolute;
+    top:0;bottom:0;
+    left:-55%;
+    width:45%;
+    background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.12) 32%,rgba(255,255,255,.78) 50%,rgba(255,255,255,.12) 68%,transparent 100%);
+    filter:blur(.25px);
+    animation:progress-sheen 7s cubic-bezier(.4,0,.2,1) infinite;
+    pointer-events:none;
+  }
+  @keyframes progress-sheen{
+    0%{transform:translateX(0);opacity:0}
+    10%{opacity:.95}
+    62%{opacity:.95}
+    74%,100%{transform:translateX(360%);opacity:0}
+  }
+  @media (prefers-reduced-motion:reduce){.progress > span::after{animation:none;display:none}}
+  .project-status{display:flex;align-items:center;gap:8px;font-size:12px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+  .project-deadline{font-size:11px;color:var(--muted);margin-top:9px}
+
+  /* OFFICE COMPLETED CARDS */
+  .completed-wrap{position:relative}
+  .completed-cards{
+    display:flex;
+    gap:14px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    padding:1px 1px 10px;
+    scrollbar-width:thin;
+  }
+  .office-card{
+    min-width:226px;
+    width:226px;
+    height:190px;
+    background:var(--surface);
+    border:1px solid var(--border-strong);
+    border-radius:4px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    cursor:pointer;
+    transition:box-shadow .12s ease,transform .12s ease,border-color .12s ease;
+  }
+  .office-card:hover{box-shadow:var(--shadow-hover);border-color:#b3b0ad;transform:translateY(-1px)}
+  .card-top{
+    height:51px;
+    padding:9px 11px;
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    background:#fff;
+  }
+  .card-top svg{width:14px;height:14px;stroke:var(--orange);fill:none;stroke-width:1.8;margin-top:2px;flex:none}
+  .card-edit-action{
+    width:22px;
+    height:22px;
+    margin:-2px 0 0 -2px;
+    padding:0;
+    border:1px solid transparent;
+    border-radius:3px;
+    background:transparent;
+    color:var(--orange);
+    display:grid;
+    place-items:center;
+    flex:none;
+    cursor:pointer;
+    transition:background .12s ease,border-color .12s ease,color .12s ease,transform .12s ease;
+  }
+  .card-edit-action svg{width:13px;height:13px;margin:0;stroke:currentColor;transform:none}
+  .card-edit-action:hover{background:#f3f2f1;border-color:#c8c6c4;color:var(--orange);transform:none}
+  .card-edit-action:focus-visible{outline:0;box-shadow:0 0 0 2px #c8c6c4}
+  .card-top-text{font-size:10.5px;color:var(--muted);line-height:1.35;overflow:hidden}
+  .card-top-text strong{display:block;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-mid{
+    flex:1;
+    min-height:78px;
+    display:grid;
+    place-items:center;
+    background:linear-gradient(#faf9f8,#f3f2f1);
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    position:relative;
+  }
+  .card-file{
+    width:54px;height:54px;border:1px solid #c8c6c4;border-radius:5px;background:#fff;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.10);position:relative
+  }
+  .card-file svg{width:31px;height:31px;stroke:var(--orange);fill:none;stroke-width:1.6}
+  .card-check{position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--success);color:#fff;border:2px solid #fff}
+  .card-check svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.3}
+  .card-bottom{height:57px;padding:9px 11px;background:#fff}
+  .card-code{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card-name{font-size:10.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* LISTS / TABLES */
+  .panel{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .panel-head{height:44px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);font-weight:600}
+  .panel-head-actions{display:flex;align-items:center;gap:8px}
+  .panel-head-actions .btn{height:28px}
+  .activity-list{list-style:none;margin:0;padding:0}
+  .activity-item{min-height:52px;padding:9px 14px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+  .activity-item:last-child{border-bottom:0}
+  .activity-icon{width:26px;height:26px;border-radius:3px;background:var(--orange-soft);display:grid;place-items:center;color:var(--orange)}
+  .activity-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .activity-title{font-size:12px}
+  .activity-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .activity-time{font-size:10.5px;color:var(--subtle);white-space:nowrap}
+
+  .toolbar{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .drawings-summary{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;background:#fff}
+  .field-inline{height:32px;border:1px solid var(--border-strong);border-radius:3px;background:#fff;padding:0 10px;outline:0;color:var(--text)}
+  .field-inline:focus{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .toolbar .grow{flex:1}
+  table{width:100%;border-collapse:collapse}
+  th{height:37px;padding:0 12px;background:#faf9f8;color:var(--muted);font-size:11px;font-weight:600;text-align:left;border-bottom:1px solid var(--border-strong);white-space:nowrap}
+  td{height:43px;padding:0 12px;border-bottom:1px solid var(--border);font-size:11.5px;white-space:nowrap}
+  tbody tr:hover{background:#faf9f8}
+  .project-row{cursor:pointer}
+  .status-pill{display:inline-flex;align-items:center;justify-content:center;width:98px;height:24px;padding:0 10px;border-radius:3px;font-size:10.5px;font-weight:600}
+  .status-pill.progressing{background:var(--orange-soft);color:var(--orange)}
+  .status-pill.done{background:var(--success-soft);color:var(--success)}
+  .status-pill.paused{background:var(--warning-soft);color:var(--warning)}
+  .tiny-progress{width:100px;height:5px;background:#e1dfdd;border-radius:2px;overflow:hidden}
+  .tiny-progress span{display:block;height:100%;background:var(--orange)}
+  .project-table-status{font-weight:600;color:var(--text)}
+  .project-progress-value{display:inline-block;min-width:42px;font-weight:600;color:var(--text);text-align:center}
+  .project-list-table{min-width:980px;table-layout:fixed}
+  .project-list-table th:nth-child(1),.project-list-table td:nth-child(1){width:31%}
+  .project-list-table th:nth-child(2),.project-list-table td:nth-child(2){width:7%;text-align:center}
+  .project-list-table th:nth-child(3),.project-list-table td:nth-child(3){width:12%}
+  .project-list-table th:nth-child(4),.project-list-table td:nth-child(4){width:9%}
+  .project-list-table th:nth-child(5),.project-list-table td:nth-child(5){width:10%}
+  .project-list-table th:nth-child(6),.project-list-table td:nth-child(6){width:17%;text-align:center}
+  .project-list-table th:nth-child(7),.project-list-table td:nth-child(7){width:8%;text-align:center}
+  .project-list-table th:nth-child(8),.project-list-table td:nth-child(8){width:6%;text-align:center}
+  .project-main-cell{min-width:0}
+  .project-list-code{font-weight:600;color:var(--text)}
+  .project-list-title{margin-top:3px;color:var(--muted);font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .project-period{white-space:nowrap}
+  .month-group-row td{height:30px;padding:0 12px;background:#f7fbfe!important;border-top:0;border-bottom:1px solid #d9e6ef;color:#135a8c;font-size:11px;font-weight:600;letter-spacing:.1px;cursor:default}
+  .month-group-row:hover td{background:#f7fbfe!important}
+  .month-group-content{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .month-group-count{color:var(--muted);font-size:10.5px;font-weight:400}
+  .project-actions-trigger{width:30px;height:28px;border:1px solid var(--border-strong);border-radius:3px;background:#fff;display:inline-grid;place-items:center;color:var(--text);cursor:pointer}
+  .project-actions-trigger:hover,.project-actions-trigger[aria-expanded="true"]{background:var(--hover);border-color:#8a8886}
+  .project-actions-trigger svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .project-actions-menu{position:fixed;z-index:120;width:166px;padding:4px;background:#fff;border:1px solid var(--border-strong);border-radius:3px;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+  .project-actions-menu[hidden]{display:none}
+  .project-actions-menu button{width:100%;height:32px;padding:0 10px;border:0;background:transparent;text-align:left;color:var(--text);font:inherit;cursor:pointer}
+  .project-actions-menu button:hover{background:var(--hover)}
+  .project-actions-menu button.danger{color:#b42318}
+  .project-actions-menu-separator{height:1px;margin:4px 6px;background:var(--border)}
+
+  /* PROJECT PAGE */
+  .project-tabs{height:42px;background:#fff;border:1px solid var(--border-strong);border-radius:var(--radius);display:flex;align-items:flex-end;padding:0 10px;gap:8px}
+  .project-tab{height:41px;border:0;background:transparent;padding:0 12px;color:var(--muted);border-bottom:2px solid transparent}
+  .project-tab:hover{background:#faf9f8;color:var(--text)}
+  .project-tab.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:600}
+  .project-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:16px;margin-top:16px}
+  .summary-overview{display:grid;gap:0}
+  .summary-top{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--border)}
+  .summary-card{padding:16px 18px;border-right:1px solid var(--border)}
+  .summary-card:last-child{border-right:0}
+  .summary-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .summary-main{font-size:18px;font-weight:600;margin-top:7px;line-height:1.2}
+  .summary-main.small{font-size:14px}
+  .summary-meter{height:6px;background:#e1dfdd;border-radius:999px;overflow:hidden;margin-top:10px}
+  .summary-meter span{display:block;position:relative;height:100%;overflow:hidden;background:var(--orange)}
+  .summary-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .summary-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .summary-row:nth-child(2n){border-right:0}
+  .summary-row:nth-last-child(-n+2){border-bottom:0}
+  .summary-row-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .summary-row-value{font-size:12px;font-weight:600;text-align:right}
+  .steps{
+    list-style:none;
+    margin:0;
+    padding:10px 12px 10px 16px;
+    max-height:none;
+    overflow:visible;
+    position:relative;
+  }
+  .steps::before{display:none}
+  .step{
+    position:relative;
+    z-index:1;
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr) auto;
+    column-gap:12px;
+    align-items:start;
+    padding:10px 8px 10px 0;
+    margin:0;
+    border:0;
+    border-radius:4px;
+    background:transparent;
+    transition:background .16s ease, box-shadow .16s ease;
+  }
+  .step:not(:last-child)::after{
+    content:"";
+    position:absolute;
+    left:13px;
+    top:31px;
+    bottom:-8px;
+    width:1px;
+    background:linear-gradient(#c7d8ee,#e1dfdd);
+  }
+  .step:hover{background:#f7f9fc}
+  .step.current{background:#eef6ff;border-radius:6px;box-shadow:none}
+  .step.done{background:transparent}
+  .step-mark{
+    position:relative;
+    z-index:2;
+    width:19px;
+    height:19px;
+    border-radius:50%;
+    border:2px solid #b6bcc6;
+    background:#fff;
+    margin:0 auto;
+    box-shadow:0 0 0 4px var(--panel,#fff);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background .16s ease, border-color .16s ease, box-shadow .16s ease;
+  }
+  .step.done .step-mark{
+    background-color:var(--orange);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 9.2 16.7 19 7.2'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:11px 11px;
+    border-color:var(--orange);
+    box-shadow:0 0 0 4px #f2f8ff;
+  }
+  .step.current .step-mark{
+    background:#fff;
+    border-color:var(--orange);
+    box-shadow:0 0 0 4px var(--orange-soft), inset 0 0 0 3px #fff;
+  }
+  .step.current .step-name{color:var(--orange-pressed)}
+  .step-name{font-size:12.5px;font-weight:600;line-height:1.35;color:var(--text)}
+  .step.done .step-name{color:var(--muted);font-weight:500}
+  .step-meta{font-size:10.5px;color:var(--subtle);margin-top:2px}
+  .stage-complete-action{height:24px;align-self:center;white-space:nowrap}
+  .stage-reopen-control{align-self:center;justify-self:end;display:flex;align-items:center;justify-content:center;width:24px;height:24px}
+  .stage-reopen-control input{
+    appearance:none;
+    -webkit-appearance:none;
+    width:18px;
+    height:18px;
+    min-width:18px;
+    max-width:18px;
+    min-height:18px;
+    max-height:18px;
+    aspect-ratio:1 / 1;
+    box-sizing:border-box;
+    padding:0;
+    flex:none;
+    margin:0;
+    border:1px solid #8a8886;
+    border-radius:4px;
+    background:#fff;
+    cursor:pointer;
+    display:grid;
+    place-content:center;
+  }
+  .stage-reopen-control input:checked{
+    border-color:var(--orange);
+    border-radius:4px;
+    background-color:var(--orange);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.2 7.4 12.4 14 5.6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:14px 14px;
+  }
+  .stage-reopen-control input:focus-visible{outline:0;box-shadow:0 0 0 2px var(--orange-line)}
+  .stage-reopen-control.disabled{opacity:.35}
+  .stage-reopen-control.disabled input{cursor:not-allowed}
+  .stage-reopen-actions{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px 12px;border-top:1px solid var(--border);background:#fff}
+  .stage-reopen-actions[hidden]{display:none}
+  .stage-reopen-actions .btn{height:28px}
+  .step-date{display:none}
+  .step.done .step-date{color:#005a9e}
+  .step.current .step-date{color:#986f0b;font-weight:600}
+
+  .project-tab-panel{display:none;margin-top:16px}
+  .project-tab-panel.active{display:block}
+  .project-content-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(310px,.7fr);gap:16px}
+  .project-content-stack{display:grid;gap:16px}
+  .panel-subhead{height:36px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:#faf9f8;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted)}
+  .path-list,.file-list,.issue-list,.history-list{list-style:none;margin:0;padding:0}
+  .path-item,.file-item,.issue-item,.history-item{display:grid;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border)}
+  .path-item:last-child,.file-item:last-child,.issue-item:last-child,.history-item:last-child{border-bottom:0}
+  .path-item{grid-template-columns:130px minmax(0,1fr) auto}
+  .path-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .path-value{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-action{height:28px;padding:0 10px;border:1px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);font-size:11px}
+  .mini-action:hover{background:var(--hover)}
+  .summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--border)}
+  .summary-stat{padding:14px;border-right:1px solid var(--border)}
+  .summary-stat:last-child{border-right:0}
+  .summary-stat-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .summary-stat-value{font-size:16px;font-weight:600;margin-top:4px}
+  .indicator-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0}
+  .indicator-item{position:relative;min-height:96px;padding:17px 18px 15px;border-right:1px solid var(--border);background:#fff}
+  .indicator-item:last-child{border-right:0}
+  .indicator-item::before{content:"";position:absolute;left:18px;top:17px;width:7px;height:7px;border-radius:50%;background:var(--orange)}
+  .indicator-item.attention::before{background:var(--accent-orange)}
+  .indicator-item.danger::before{background:#d13438}
+  .indicator-item.hours::before{background:#5c2d91}
+  .indicator-label{padding-left:15px;color:var(--muted);font-size:10.5px;line-height:1.3}
+  .indicator-value{margin-top:12px;color:var(--text);font-size:22px;font-weight:600;line-height:1}
+  .indicator-value.compact{font-size:18px}
+  .indicator-caption{margin-top:7px;color:var(--subtle);font-size:10px}
+  .issue-item{grid-template-columns:minmax(0,1fr) 110px 110px 100px}
+  .issue-title{font-size:12px;font-weight:600}
+  .issue-sub{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .priority{display:inline-flex;align-items:center;justify-content:center;width:60px;height:24px;padding:0 8px;border-radius:3px;font-size:10.5px;font-weight:600}
+  .priority.high{background:#fde7e9;color:#a4262c}
+  .priority.medium{background:var(--warning-soft);color:var(--warning)}
+  .priority.low{background:#e8f3fb;color:#005a9e}
+  .project-client .priority{margin-left:6px;vertical-align:middle}
+  .deadline-pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:3px;font-size:10.5px;font-weight:600}
+  .deadline-pill.overdue{background:#fde7e9;color:#a4262c}
+  .project-deadline.overdue,.overdue-text{color:#a4262c;font-weight:600}
+  .table-warning{margin-top:2px;color:#a4262c;font-size:10px;font-weight:600}
+  .project-row.project-overdue{box-shadow:inset 3px 0 0 #a4262c}
+  .history-item{grid-template-columns:28px minmax(0,1fr) 125px}
+  .history-icon,.file-type-icon{width:28px;height:28px;border-radius:3px;background:var(--orange-soft);display:grid;place-items:center;color:var(--orange)}
+  .history-icon svg,.file-type-icon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .history-title{font-size:12px}
+  .history-meta{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .history-date{font-size:10.5px;color:var(--subtle);text-align:right}
+  .file-item{grid-template-columns:36px minmax(0,1fr) 120px 125px auto}
+  .file-title{font-size:12px;font-weight:600}
+  .file-sub{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .file-type,.file-date{font-size:10.5px;color:var(--muted)}
+  .file-actions{display:flex;gap:6px}
+  .stage-overview{padding:14px;border-bottom:1px solid var(--border);background:#faf9f8}
+  .stage-overview-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
+  .stage-overview strong{color:var(--text);font-size:12px}
+  .stage-progress{height:7px;background:#e1dfdd;border-radius:2px;overflow:hidden;margin-top:8px}
+  .stage-progress span{display:block;position:relative;width:68%;height:100%;overflow:hidden;background:var(--orange)}
+  .summary-meter span::after,.stage-progress span::after{
+    content:"";
+    position:absolute;
+    top:0;bottom:0;
+    left:-55%;
+    width:45%;
+    background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.12) 32%,rgba(255,255,255,.78) 50%,rgba(255,255,255,.12) 68%,transparent 100%);
+    filter:blur(.25px);
+    animation:progress-sheen 7s cubic-bezier(.4,0,.2,1) infinite;
+    pointer-events:none;
+  }
+  @media (prefers-reduced-motion:reduce){.summary-meter span::after,.stage-progress span::after{animation:none;display:none}}
+  .drawing-status{display:inline-flex;align-items:center;gap:5px}
+  .drawing-status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--success)}
+  .drawing-status.review::before{background:var(--orange)}
+  .drawing-status.pending::before{background:#8a8886}
+  .drawings-table th,.drawings-table td{text-align:center}
+  .drawings-table td:first-child strong{display:inline-block}
+  .settings-save-action{height:32px;min-width:82px;padding:0 18px;box-shadow:none}
+  @media(max-width:1000px){
+    .project-content-grid{grid-template-columns:1fr}
+    .summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .indicator-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .indicator-item:nth-child(2){border-right:0}
+    .indicator-item:nth-child(-n+2){border-bottom:1px solid var(--border)}
+    .issue-item{grid-template-columns:minmax(0,1fr) 90px}
+    .issue-item > :nth-child(3),.issue-item > :nth-child(4){display:none}
+    .file-item{grid-template-columns:36px minmax(0,1fr) auto}
+    .file-type,.file-date{display:none}
+  }
+
+  /* FORM */
+  .form-shell{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .form-section{padding:18px 20px;border-bottom:1px solid var(--border)}
+  .form-section:last-child{border-bottom:0}
+  .form-section-title{font-size:14px;font-weight:600;margin-bottom:13px}
+  .form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 16px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group.span-2{grid-column:span 2}
+  .form-group.span-3{grid-column:span 3}
+  label{font-size:11px;font-weight:600;color:var(--text)}
+  input,select,textarea{border:1px solid var(--border-strong);border-radius:3px;background:#fff;color:var(--text);outline:0}
+  input,select{height:34px;padding:0 10px}
+  select{
+    appearance:none;
+    -webkit-appearance:none;
+    background-color:#fff;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230078d4' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 9 5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 10px center;
+    background-size:14px 14px;
+    padding-right:34px;
+  }
+  textarea{min-height:72px;padding:9px 10px;resize:vertical}
+  input:focus,select:focus,textarea:focus{border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .form-footer{height:58px;padding:0 20px;display:flex;align-items:center;justify-content:flex-end;gap:8px;background:#faf9f8}
+
+  /* PLACEHOLDER */
+  .empty-page{min-height:420px;background:#fff;border:1px solid var(--border-strong);border-radius:var(--radius);display:grid;place-items:center;text-align:center;color:var(--muted)}
+  .empty-page svg{width:42px;height:42px;stroke:var(--orange);fill:none;stroke-width:1.4;margin:auto auto 12px}
+  .empty-page strong{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+
+  .app-footer{
+    height:28px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    padding:0 20px;
+    border-top:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--muted);
+    font-size:10.5px;
+    white-space:nowrap;
+  }
+
+  .toast{position:fixed;right:22px;bottom:22px;min-width:280px;max-width:420px;background:#323130;color:#fff;padding:12px 14px;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.24);transform:translateY(90px);opacity:0;transition:.18s;z-index:50}
+  .toast.show{transform:translateY(0);opacity:1}
+
+  @media(max-width:1100px){
+    .app{grid-template-columns:210px minmax(0,1fr)}
+    .active-project-card,.project-grid{grid-template-columns:1fr}
+    .active-side{border-left:0;border-top:1px solid var(--border)}
+    .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .form-group.span-3{grid-column:span 2}
+  }
+  #overview .page-head > .btn.primary[data-view="new-project"]{display:none}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .user-greeting{min-width:118px;text-align:right;line-height:1.15}
+  .greeting-line{font-size:11px;color:var(--muted)}
+  .greeting-name{font-size:13px;color:var(--orange);font-weight:700;margin-top:2px}
+  .project-delete-action{border-color:var(--border-strong);color:var(--muted);background:#fff}
+  .project-delete-action:hover{background:var(--hover);color:var(--text);border-color:#8a8886}
+  .toast{left:auto;right:22px;top:auto;bottom:22px;min-width:300px;max-width:420px;background:#fff;color:var(--text);border:1px solid var(--border-strong);border-left:4px solid var(--orange);box-shadow:0 8px 22px rgba(0,0,0,.18);transform:translateY(24px);opacity:0;z-index:70}
+  .toast.show{transform:translateY(0);opacity:1}
+  .app-dialog-backdrop{position:fixed;inset:0;background:rgba(50,49,48,.38);display:grid;place-items:center;z-index:80}
+  .app-dialog-backdrop[hidden]{display:none}
+  .app-dialog{width:min(440px,calc(100vw - 40px));background:#fff;border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:0 16px 34px rgba(0,0,0,.28);overflow:hidden}
+  .app-dialog-head{height:46px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);font-weight:600}
+  .app-dialog-body{padding:16px 16px 12px;color:var(--text);line-height:1.45;white-space:pre-line}
+  .app-dialog-actions{height:56px;padding:0 14px;display:flex;align-items:center;justify-content:flex-end;gap:8px;background:#faf9f8;border-top:1px solid var(--border)}
+  .stage-time-dialog{width:min(560px,calc(100vw - 40px))}
+  .stage-time-body{white-space:normal;display:flex;flex-direction:column;gap:10px}
+  .stage-time-lead{font-size:12px;color:var(--text);line-height:1.5}
+  .stage-time-summary{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:#f5f9fd;border:1px solid #c7def2;border-radius:4px;font-size:11px;color:var(--muted)}
+  .stage-time-summary strong{font-size:13px;color:var(--blue);font-weight:700}
+  .stage-time-choice{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer}
+  .stage-time-choice.selected{border-color:#8abce6;background:#f5f9fd}
+  .stage-time-choice input{margin-top:2px}
+  .stage-time-choice span,.stage-time-row span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .stage-time-choice strong,.stage-time-row strong{font-size:11.5px;color:var(--text);font-weight:600}
+  .stage-time-choice small,.stage-time-row small{font-size:10.5px;color:var(--muted);line-height:1.35}
+  .stage-time-list{margin-left:26px;border:1px solid var(--border);border-radius:4px;overflow:hidden;opacity:.5;background:#fafafa}
+  .stage-time-list.enabled{opacity:1;background:#fff}
+  .stage-time-row{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:flex-start;padding:8px 9px;border-bottom:1px solid var(--border);cursor:pointer}
+  .stage-time-row:last-child{border-bottom:0}
+  .stage-time-row.target{background:#f5f9fd}
+  .stage-time-row input{margin-top:2px}
+  .stage-time-hint{margin-left:26px;font-size:10.5px;color:var(--muted);line-height:1.4}
+  .stage-adjust-dialog{width:min(760px,calc(100vw - 40px))}
+  .stage-adjust-dialog .app-dialog-body{white-space:normal}
+  .stage-adjust-lead{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  .stage-adjust-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff}
+  #stageTimeAdjustList{display:flex;flex-direction:column}
+  .stage-adjust-row{display:grid;grid-template-columns:30px minmax(0,1fr) 86px 86px;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border)}
+  .stage-adjust-row:last-child{border-bottom:0}
+  .stage-adjust-head{background:#faf9f8;color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase}
+  .stage-adjust-title{min-width:0}
+  .stage-adjust-title strong{display:block;font-size:12px;color:var(--text);font-weight:600;line-height:1.35}
+  .stage-adjust-title small{display:block;margin-top:2px;font-size:10.5px;color:var(--muted)}
+  .stage-adjust-row input{width:86px;height:30px;border:1px solid var(--border-strong);border-radius:4px;padding:0 8px;text-align:right;font-size:12px;background:#fff}
+  .stage-adjust-total{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:9px 10px;border:1px solid #c7def2;border-radius:4px;background:#f5f9fd;color:var(--muted);font-size:11px}
+  .stage-adjust-total strong{color:var(--blue);font-size:13px}
+  .file-dialog{width:min(560px,calc(100vw - 40px))}
+  .file-dialog-body{padding:16px;display:grid;gap:14px}
+  .issue-dialog{width:min(620px,calc(100vw - 40px))}
+  .issue-dialog .app-dialog-body,.revision-dialog .app-dialog-body{white-space:normal}
+  .issue-dialog textarea{min-height:92px;resize:vertical}
+  .revision-dialog{width:min(500px,calc(100vw - 40px))}
+  .revision-note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:2px}
+  .project-action-group{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
+  .path-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+  .path-picker input{background:#faf9f8}
+  .project-tabs{align-items:stretch;padding:0 10px}
+  .project-tab{height:40px;margin-top:1px;margin-bottom:1px}
+  .project-tab:hover{background:#faf9f8;box-shadow:inset 0 0 0 1px var(--border)}
+  .steps{padding:10px 12px 10px 16px}
+  .steps::before{display:none}
+  .step{grid-template-columns:28px minmax(0,1fr) auto;column-gap:12px;align-items:start;padding:10px 8px 10px 0;margin:0}
+  .step.current{background:#eef6ff;box-shadow:none}
+  .step > div:nth-child(2){min-width:0}
+  .step-name{overflow-wrap:anywhere}
+  .step.current .step-mark{border-color:var(--orange);box-shadow:0 0 0 4px var(--orange-soft), inset 0 0 0 3px #fff}
+  .step-date{display:none}
+  /* Botão de ação destrutiva */
+  .btn.danger{background:#d13438;border-color:#d13438;color:#fff}
+  .btn.danger:hover{background:#a4262c;border-color:#a4262c;color:#fff}
+  #resetDataButton{
+    height:32px;
+    padding:0 16px;
+    line-height:32px;
+    font-size:12.5px;
+    font-weight:600;
+    background:#d13438;
+    border-color:#d13438;
+    background-image:none;
+    background-clip:padding-box;
+    color:#fff;
+    text-shadow:none;
+    box-shadow:none;
+    filter:none;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:auto;
+  }
+  #resetDataButton:hover{background:#a4262c;border-color:#a4262c;color:#fff}
+  /* Mensagem do diálogo de confirmação com quebras de linha */
+  #appConfirmMessage{white-space:pre-line}
+  /* Editor de etapas */
+  .stage-editor{width:min(620px,calc(100vw - 40px))}
+  .stage-editor .app-dialog-body{max-height:min(60vh,520px);overflow:auto}
+  .stage-editor-sub{font-size:12px;color:var(--muted);margin-bottom:12px}
+  .stage-editor-list{display:flex;flex-direction:column;gap:8px}
+  .stage-editor-row{display:grid;grid-template-columns:22px minmax(0,1fr) 84px;align-items:center;gap:8px}
+  .stage-editor-idx{font-size:11px;color:var(--subtle);text-align:right}
+  .stage-editor-row input{height:32px;border:1px solid var(--border-strong);border-radius:6px;padding:0 8px;font-size:12px}
+  .stage-name-wrap{position:relative;min-width:0}
+  .stage-editor-row .stage-name{width:100%;min-width:0;padding-right:34px}
+  .stage-editor-row .stage-weight{width:84px;text-align:right}
+  .stage-row-remove{
+    position:absolute;right:3px;top:50%;transform:translateY(-50%);
+    width:26px;height:26px;border:0;border-radius:3px;background:transparent;
+    color:#a4262c;font-size:17px;line-height:1;display:grid;place-items:center;
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity .14s ease,background .14s ease;
+  }
+  .stage-editor.remove-mode .stage-row-remove{opacity:1;visibility:visible;pointer-events:auto}
+  .stage-row-remove:hover{background:#fdf3f2}
+  .stage-editor-tools{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px}
+  .stage-editor-tools .btn{min-width:88px}
+  .stage-remove-toggle.active{border-color:#c33f38;color:#a92f28;background:#fdf3f2}
+  .stage-editor-foot{margin-top:12px;font-size:11px;color:var(--muted)}
+  .stage-editor-warn{margin-top:8px;display:none;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:#fdf3f2;border:1px solid #f1c6c2;color:#a92f28;font-size:12px}
+  .stage-editor-warn.show{display:flex}
+  .stage-editor-total-high{color:#a92f28;font-weight:700}
+
+  /* Ícones azuis da navegação e dos seletores de data */
+  input[type="date"]{accent-color:var(--orange)}
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    opacity:1;
+    filter:invert(37%) sepia(94%) saturate(1576%) hue-rotate(181deg) brightness(86%) contrast(102%);
+    cursor:pointer;
+  }
+
+  /* Na lista de projetos, prioridade é texto simples, sem fundo colorido */
+  #projects .priority{
+    width:auto;height:auto;padding:0;border-radius:0;background:transparent;color:var(--text);font-weight:400;
+  }
+
+  /* Indicadores gerais de todos os projetos */
+  .drawing-indicators-shell{display:flex;flex-direction:column;gap:14px}
+  .indicator-projects-panel{overflow:hidden}
+  .indicator-projects-head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:#faf9f8}
+  .indicator-projects-head strong{font-size:13px}
+  .indicator-projects-head span{font-size:11px;color:var(--muted)}
+  .indicator-projects-table-wrap{max-height:235px;overflow:auto}
+  .indicator-project-table{width:100%;table-layout:fixed;min-width:900px}
+  .indicator-project-table th,.indicator-project-table td{padding-left:12px;padding-right:12px}
+  .indicator-project-table th:nth-child(1),.indicator-project-table td:nth-child(1){width:30%;text-align:left}
+  .indicator-project-table th:nth-child(2),.indicator-project-table td:nth-child(2){width:12%;text-align:center}
+  .indicator-project-table th:nth-child(3),.indicator-project-table td:nth-child(3){width:15%;text-align:center}
+  .indicator-project-table th:nth-child(4),.indicator-project-table td:nth-child(4){width:11%;text-align:center}
+  .indicator-project-table th:nth-child(5),.indicator-project-table td:nth-child(5){width:13%;text-align:center}
+  .indicator-project-table th:nth-child(6),.indicator-project-table td:nth-child(6){width:19%;text-align:center}
+  .indicator-project-row{cursor:pointer}
+  .indicator-project-row:hover td{background:#f7fbff}
+  .indicator-project-row.selected td{background:#eaf4fd}
+  .indicator-project-row.selected td:first-child{box-shadow:inset 3px 0 0 var(--orange)}
+  .indicator-month-row td{height:32px;background:#f3f8fc!important;border-top:1px solid var(--orange-line);border-bottom:1px solid var(--orange-line);color:#135a8c;font-weight:600;cursor:default}
+  .indicator-month-row:hover td{background:#f3f8fc!important}
+  .indicator-project-code{font-weight:600}
+  .indicator-project-title{margin-top:2px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .indicator-not-imported{color:var(--muted)}
+  .indicator-detail-panel{overflow:hidden}
+  .drawing-indicators-summary{display:grid;grid-template-columns:1.15fr .8fr .9fr 1.35fr;border-bottom:1px solid var(--border);background:var(--surface)}
+  .drawing-indicator-cell{min-width:0;padding:15px 16px;border-right:1px solid var(--border)}
+  .drawing-indicator-cell:last-child{border-right:0}
+  .drawing-indicator-label{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.35px}
+  .drawing-indicator-value{margin-top:5px;font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drawing-indicator-value.small{font-size:13px;font-weight:600}
+  .drawing-indicators-context{padding:12px 14px;display:flex;justify-content:space-between;gap:16px;align-items:center;background:#faf9f8;border-bottom:1px solid var(--border)}
+  .drawing-indicators-context-main{min-width:0}
+  .drawing-indicators-code{font-weight:600;color:var(--text)}
+  .drawing-indicators-sub{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drawing-check{font-size:12px;font-weight:600;white-space:nowrap}
+  .drawing-check.ok{color:var(--success)}
+  .drawing-check.warning{color:#a15c00}
+  .drawing-indicators-table-wrap{overflow:auto;max-height:calc(100vh - 610px);min-height:150px}
+  .indicator-assembly-table th:nth-child(1),.indicator-assembly-table td:nth-child(1){width:92px;text-align:center}
+  .indicator-assembly-table th:nth-child(3),.indicator-assembly-table td:nth-child(3){width:150px;text-align:right}
+  .indicator-empty{padding:42px 18px;text-align:center;color:var(--muted)}
+  .indicator-empty strong{display:block;color:var(--text);font-size:14px;margin-bottom:5px}
+  .indicator-source-note{font-size:11px;color:var(--muted);padding:9px 14px;border-top:1px solid var(--border);background:#faf9f8}
+  .indicator-editor{width:min(760px,calc(100vw - 40px))}
+  .indicator-editor-body{padding:16px}
+  .indicator-editor-total{max-width:230px;margin-bottom:14px}
+  .indicator-editor-list{display:flex;flex-direction:column;gap:7px;max-height:390px;overflow:auto;padding-right:3px}
+  .indicator-editor-row{display:grid;grid-template-columns:70px minmax(220px,1fr) 130px 30px;gap:8px;align-items:center}
+  .indicator-editor-row input{height:32px;border:1px solid var(--border-strong);border-radius:3px;padding:0 9px;min-width:0}
+  .indicator-editor-row input:focus{outline:0;border-color:var(--orange);box-shadow:0 0 0 1px var(--orange)}
+  .indicator-editor-remove{height:28px;width:28px;border:0;background:transparent;color:#a4262c;font-size:17px;border-radius:3px}
+  .indicator-editor-remove:hover{background:#fdf3f2}
+  .indicator-editor-tools{display:flex;justify-content:flex-end;margin-top:10px}
+  /* Refino visual das listas: Projetos e Indicadores > Projetos cadastrados */
+  #projects .panel{display:flex;flex-direction:column;min-height:0}
+  #projects .toolbar{padding:14px 14px 10px;background:#fff}
+  #projects .project-list-shell{padding:0 12px 12px;background:#fff;min-height:0;flex:1}
+  #projects .project-list-scroll{height:clamp(420px,calc(100vh - 320px),760px);max-height:none;overflow:auto;scrollbar-gutter:stable both-edges}
+  #projects .project-list-table{min-width:1080px;table-layout:fixed;border-collapse:separate;border-spacing:0}
+  #projects .project-list-table th:nth-child(1),#projects .project-list-table td:nth-child(1){width:30%;text-align:left}
+  #projects .project-list-table th:nth-child(2),#projects .project-list-table td:nth-child(2){width:7%;text-align:center}
+  #projects .project-list-table th:nth-child(3),#projects .project-list-table td:nth-child(3){width:10%;text-align:center}
+  #projects .project-list-table th:nth-child(4),#projects .project-list-table td:nth-child(4){width:10%;text-align:center}
+  #projects .project-list-table th:nth-child(5),#projects .project-list-table td:nth-child(5){width:10%;text-align:center}
+  #projects .project-list-table th:nth-child(6),#projects .project-list-table td:nth-child(6){width:10%;text-align:center}
+  #projects .project-list-table th:nth-child(7),#projects .project-list-table td:nth-child(7){width:10%;text-align:center}
+  #projects .project-list-table th:nth-child(8),#projects .project-list-table td:nth-child(8){width:8%;text-align:center}
+  #projects .project-list-table th:nth-child(9),#projects .project-list-table td:nth-child(9){width:5%;text-align:center}
+  #projects .project-list-table thead th,
+  #indicators .indicator-project-table thead th{position:sticky;top:0;z-index:2;height:38px;padding:0 14px;background:#fff;color:#605e5c;border-bottom:1px solid #ebe9e8}
+  #projects .project-list-table td,
+  #indicators .indicator-project-table td{height:54px;padding:10px 14px;border-bottom:1px solid #f0efee;vertical-align:middle;background:#fff}
+  #projects .project-list-table tbody tr:hover td,
+  #indicators .indicator-project-row:hover td{background:#fbfbfb}
+  #projects .month-group-row td,
+  #indicators .indicator-month-row td{height:30px;padding:0 14px;background:#dce9f6!important;border-top:1px solid #bfd3e6;border-bottom:1px solid #bfd3e6;color:#174a73;font-size:11.5px;font-weight:600}
+  #projects .month-group-row:hover td,
+  #indicators .indicator-month-row:hover td{background:#dce9f6!important}
+  #projects .month-group-count,
+  #indicators .month-group-count{color:#605e5c;font-size:11px;font-weight:400}
+  #projects .project-list-code,
+  #indicators .indicator-project-code{font-size:12.5px;font-weight:600}
+  #projects .project-list-title,
+  #indicators .indicator-project-title{margin-top:3px;font-size:10.8px;color:#605e5c}
+  #projects .project-table-status,#projects .project-progress-value{font-weight:400;color:var(--text)}
+  #projects .project-actions-trigger{width:32px;height:26px;border:1px solid #c8c6c4;border-radius:4px;background:#fff;color:var(--text)}
+  #projects .project-actions-trigger:hover,#projects .project-actions-trigger[aria-expanded="true"]{background:#f5f5f5;border-color:#8a8886}
+  #projects .project-actions-trigger svg{width:14px;height:14px;color:var(--orange);stroke-width:2}
+
+  #indicators .indicator-projects-head{padding:14px 16px 10px;background:#fff;border-bottom:0}
+  #indicators .indicator-projects-table-shell{padding:0 12px 12px;background:#fff}
+  #indicators .indicator-projects-table-wrap{max-height:285px;overflow:auto;scrollbar-gutter:stable both-edges}
+  #indicators .indicator-project-table{width:100%;table-layout:fixed;min-width:900px;border-collapse:separate;border-spacing:0}
+  #indicators .indicator-project-table th:nth-child(1),#indicators .indicator-project-table td:nth-child(1){width:30%;text-align:left}
+  #indicators .indicator-project-table th:nth-child(2),#indicators .indicator-project-table td:nth-child(2){width:12%;text-align:center}
+  #indicators .indicator-project-table th:nth-child(3),#indicators .indicator-project-table td:nth-child(3){width:15%;text-align:center}
+  #indicators .indicator-project-table th:nth-child(4),#indicators .indicator-project-table td:nth-child(4){width:11%;text-align:center}
+  #indicators .indicator-project-table th:nth-child(5),#indicators .indicator-project-table td:nth-child(5){width:13%;text-align:center}
+  #indicators .indicator-project-table th:nth-child(6),#indicators .indicator-project-table td:nth-child(6){width:19%;text-align:center}
+  #indicators .indicator-project-row.selected td{background:#f8fbff}
+  #indicators .indicator-project-row.selected td:first-child{box-shadow:none}
+
+  /* Sugestões dos campos no estilo do programa */
+  .project-suggestion-control{position:relative}
+  .project-suggestion-control > input{width:100%;padding-right:36px}
+  .project-suggestion-toggle{position:absolute;top:1px;right:1px;width:32px;height:30px;border:0;border-left:1px solid transparent;border-radius:0 2px 2px 0;background:#fff;color:var(--orange);display:grid;place-items:center;cursor:pointer}
+  .project-suggestion-toggle:hover{background:var(--hover)}
+  .project-suggestion-toggle svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+  .project-suggestion-menu{position:absolute;z-index:160;left:0;right:0;top:calc(100% + 3px);max-height:190px;overflow:auto;padding:4px;background:#fff;border:1px solid var(--border-strong);border-radius:3px;box-shadow:0 8px 20px rgba(0,0,0,.16)}
+  .project-suggestion-menu[hidden]{display:none}
+  .project-suggestion-option{width:100%;height:32px;padding:0 10px;border:0;border-radius:2px;background:transparent;color:var(--text);font:inherit;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .project-suggestion-option:hover,.project-suggestion-option.active{background:#f3f8fc;color:#135a8c}
+  .project-suggestion-empty{padding:9px 10px;color:var(--muted);font-size:11px}
+
+  /* Cadastro de datas das revisões em projetos concluídos */
+  .completed-revisions[hidden]{display:none}
+  .completed-revisions{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .completed-revisions-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:10px}
+  .completed-revisions-title{font-size:12px;font-weight:600;color:var(--text)}
+  .completed-revisions-help{margin-top:3px;font-size:10.8px;color:var(--muted);line-height:1.4}
+  .completed-revision-grid-head{display:grid;grid-template-columns:minmax(105px,150px) minmax(170px,220px) 96px;gap:8px;margin-bottom:5px;color:var(--muted);font-size:10.5px;font-weight:600}
+  .completed-revision-list{display:flex;flex-direction:column;gap:7px}
+  .completed-revision-row{display:grid;grid-template-columns:minmax(105px,150px) minmax(170px,220px) 96px;gap:8px;align-items:center}
+  .completed-revision-row input{width:100%;height:32px}
+  .completed-revision-remove{height:32px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;white-space:nowrap}
+  .completed-revision-remove:hover{background:var(--hover);border-color:#8a8886;color:var(--text)}
+  .completed-revisions-empty{padding:9px 10px;border:1px dashed var(--border-strong);color:var(--muted);font-size:11px;background:#faf9f8}
+  .completed-revisions-actions{display:flex;justify-content:flex-start;margin-top:9px}
+
+  /* Caixa de seleção das preferências */
+  .settings-check-row{display:flex;align-items:flex-start;gap:9px;min-height:34px;padding:8px 10px;border:1px solid var(--border);background:#faf9f8;border-radius:3px}
+  .settings-check-row input[type="checkbox"]{width:16px;height:16px;margin:1px 0 0;accent-color:var(--orange);flex:0 0 auto}
+  .settings-check-copy{display:flex;flex-direction:column;gap:2px}
+  .settings-check-copy strong{font-size:11.5px;font-weight:600}
+  .settings-check-copy span{font-size:10.5px;color:var(--muted);line-height:1.35}
+
+  @media(max-width:1000px){.drawing-indicators-summary{grid-template-columns:1fr 1fr}.drawing-indicator-cell:nth-child(2){border-right:0}.drawing-indicator-cell:nth-child(-n+2){border-bottom:1px solid var(--border)}.indicator-projects-table-wrap{max-height:240px}.drawing-indicators-table-wrap{max-height:260px}}
+
+  /* Status editáveis no cadastro */
+  .status-field-row{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:7px;align-items:center}
+  .status-manage-button{width:92px;padding:0 10px;color:var(--orange)}
+  .status-dialog{width:min(520px,calc(100vw - 40px))}
+  .status-dialog-list{display:flex;flex-direction:column;gap:7px;margin-top:12px;max-height:260px;overflow:auto}
+  .status-dialog-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px;padding:0 8px 0 11px;border:1px solid var(--border);border-radius:3px;background:var(--surface)}
+  .status-dialog-item.system{background:var(--surface-2)}
+  .status-dialog-remove{width:28px;height:28px;border:0;border-radius:3px;background:transparent;color:#a4262c;font-size:16px}
+  .status-dialog-remove:hover{background:#fdf3f2}
+  .status-dialog-lock{font-size:10px;color:var(--subtle);text-transform:uppercase;letter-spacing:.3px}
+  .status-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+
+  /* Acompanhamento: colunas numéricas e situação centralizadas */
+  .tracking-project-table th:nth-child(n+3),
+  .tracking-project-table td:nth-child(n+3){text-align:center}
+  #tracking .project-content-grid{margin-bottom:16px}
+
+  /* Histórico compacto das revisões */
+  .revision-history{margin-top:14px;border-top:1px solid var(--border);padding-top:11px}
+  .revision-history-title{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .revision-history-list{display:flex;flex-direction:column;gap:4px;max-height:112px;overflow:auto}
+  .revision-history-item{display:grid;grid-template-columns:80px 1fr auto;gap:10px;align-items:center;font-size:11px;padding:5px 7px;background:var(--surface-2);border-radius:3px}
+  .revision-history-empty{font-size:11px;color:var(--muted)}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <img src="/static/img/logo_controle_projetos.png" alt="" />
+      </div>
+      <div class="brand-copy">
+        <div class="brand-title">Controle de Projetos</div>
+        <div class="brand-subtitle">Detalhamento e engenharia</div>
+      </div>
+    </div>
+
+    <button class="new-project" data-view="new-project">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Novo projeto
+    </button>
+
+    <div class="nav-label">Controle</div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="overview">
+        <svg viewBox="0 0 24 24"><path d="M4 10.4 12 4l8 6.4"/><path d="M5.8 9.1v11.3h12.4V9.1"/><path d="M9.9 19.4v-5.5h4.2v5.5"/></svg>
+        Visão geral
+      </button>
+      <button class="nav-item" data-view="current-project">
+        <svg viewBox="0 0 24 24"><path d="M6.4 3.8h6.6l4.6 4.6v11.8H6.4z"/><path d="M12.8 3.8v4.8h4.8"/><path d="M9.2 13.2h5.6M9.2 16.4h3.7"/></svg>
+        Projeto atual
+      </button>
+      <button class="nav-item" data-view="projects">
+        <svg viewBox="0 0 24 24"><rect x="4.2" y="4.6" width="6.6" height="6" rx="1.3"/><rect x="13.2" y="4.6" width="6.6" height="6" rx="1.3"/><rect x="4.2" y="13.4" width="6.6" height="6" rx="1.3"/><rect x="13.2" y="13.4" width="6.6" height="6" rx="1.3"/></svg>
+        Projetos
+      </button>
+      <button class="nav-item" data-view="tracking">
+        <svg viewBox="0 0 24 24"><path d="M4.5 4v15.5H20"/><path d="M7.6 14.4l3.1-3.7 2.7 2.1 4.4-5.3"/></svg>
+        Acompanhamento
+      </button>
+      <button class="nav-item" data-view="indicators">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5h16"/><path d="M7 16v-5"/><path d="M12 16V7"/><path d="M17 16v-8"/><path d="M6.5 8.5 10 6l4 2.8 4-4.3"/></svg>
+        Indicadores
+      </button>
+    </nav>
+
+    <div class="nav-spacer"></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="globalSearch" placeholder="Pesquisar projetos, desenhos ou responsáveis" />
+      </div>
+      <div class="top-actions">
+        <div class="user-greeting" id="userGreeting"><div class="greeting-line">Boa noite,</div><div class="greeting-name">CaLavort</div></div>
+      </div>
+    </header>
+
+    <div class="active-project-bar">
+      <div class="active-mark"></div>
+      <div class="active-copy">
+        <div class="active-label">Projeto ativo</div>
+        <div class="active-title">IME-MC-1-44351 — GDM FPSO - TEG &amp; Gas Dehydration</div>
+        <div class="active-meta">Cliente SLB · ISUP Lateral · Revisão 0 · 24 folhas</div>
+      </div>
+      <div class="active-actions">
+        <button class="btn" id="followProjectButton" type="button">
+          <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-3 3 2 4-6"/></svg>
+          Acompanhar
+        </button>
+        <button class="btn" data-view="projects">
+          <svg viewBox="0 0 24 24"><path d="M7 7h12v12H7zM5 5h12M5 5v12"/></svg>
+          Trocar projeto
+        </button>
+        <button class="btn" data-view="current-project">
+          <svg viewBox="0 0 24 24"><path d="M4 5.5h6l1.5 2H20v11H4z"/></svg>
+          Abrir projeto
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- VISÃO GERAL -->
+      <section class="view active" id="overview">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Visão geral</h1>
+            <div class="page-desc">Acompanhe o projeto atual e acesse rapidamente os últimos projetos concluídos.</div>
+          </div>
+          <button class="btn primary" data-view="new-project">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Novo projeto
+          </button>
+        </div>
+
+        <div class="active-project-card">
+          <div class="active-main">
+            <div class="active-main-top">
+              <div class="project-symbol">
+                <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 12h8M8 16h6"/></svg>
+              </div>
+              <div>
+                <div class="project-code">IME-MC-1-44351</div>
+                <div class="project-name">GDM FPSO — TEG &amp; Gas Dehydration</div>
+                <div class="project-client">SLB · Suporte secundário — ISUP Lateral</div>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-item"><div class="meta-label">Responsável</div><div class="meta-value">Edflávio Calavort</div></div>
+              <div class="meta-item"><div class="meta-label">Revisão</div><div class="meta-value">Rev. 0</div></div>
+              <div class="meta-item"><div class="meta-label">Folhas</div><div class="meta-value">24 folhas</div></div>
+              <div class="meta-item"><div class="meta-label">Horas no projeto</div><div class="meta-value">126h 40min</div></div>
+              <div class="meta-item"><div class="meta-label">Última atualização</div><div class="meta-value">Hoje, 16:40</div></div>
+            </div>
+          </div>
+          <div class="active-side">
+            <div class="progress-label"><span>Progresso geral</span><strong>68%</strong></div>
+            <div class="progress"><span></span></div>
+            <div class="project-status"><span class="status-dot"></span><strong>Em detalhamento</strong></div>
+            <div class="project-deadline">Prazo previsto: 26/07/2026</div>
+          </div>
+        </div>
+
+        <div class="section completed-wrap">
+          <div class="section-head">
+            <div class="section-title">Últimos projetos concluídos</div>
+            <button class="section-link" data-view="projects">Ver todos os projetos</button>
+          </div>
+          <div class="completed-cards">
+            <article class="office-card" data-project="IME-MC-1-44298">
+              <div class="card-top">
+                <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6zM14.5 7l2.5 2.5"/></svg>
+                <div class="card-top-text"><strong>Concluído por Edflávio</strong>11/07/2026 · 15:32</div>
+              </div>
+              <div class="card-mid">
+                <div class="card-file">
+                  <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 12h8M8 16h5"/></svg>
+                  <span class="card-check"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span>
+                </div>
+              </div>
+              <div class="card-bottom"><div class="card-code">IME-MC-1-44298</div><div class="card-name">Pipe Support — Módulo B</div></div>
+            </article>
+
+            <article class="office-card" data-project="IME-MC-1-44273">
+              <div class="card-top">
+                <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6zM14.5 7l2.5 2.5"/></svg>
+                <div class="card-top-text"><strong>Concluído por R. Santos</strong>08/07/2026 · 17:10</div>
+              </div>
+              <div class="card-mid">
+                <div class="card-file">
+                  <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h6"/></svg>
+                  <span class="card-check"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span>
+                </div>
+              </div>
+              <div class="card-bottom"><div class="card-code">IME-MC-1-44273</div><div class="card-name">Cable Tray Support — Área 3</div></div>
+            </article>
+
+            <article class="office-card" data-project="IME-MC-1-44186">
+              <div class="card-top">
+                <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6zM14.5 7l2.5 2.5"/></svg>
+                <div class="card-top-text"><strong>Concluído por Marcelo G.</strong>03/07/2026 · 09:48</div>
+              </div>
+              <div class="card-mid">
+                <div class="card-file">
+                  <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 8h8v8H8z"/></svg>
+                  <span class="card-check"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span>
+                </div>
+              </div>
+              <div class="card-bottom"><div class="card-code">IME-MC-1-44186</div><div class="card-name">Plataforma de Soldagem 2</div></div>
+            </article>
+
+            <article class="office-card" data-project="IME-MC-1-44144">
+              <div class="card-top">
+                <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6zM14.5 7l2.5 2.5"/></svg>
+                <div class="card-top-text"><strong>Concluído por Lorraín F.</strong>27/06/2026 · 14:22</div>
+              </div>
+              <div class="card-mid">
+                <div class="card-file">
+                  <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M8 13h8M8 17h8"/></svg>
+                  <span class="card-check"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span>
+                </div>
+              </div>
+              <div class="card-bottom"><div class="card-code">IME-MC-1-44144</div><div class="card-name">Suportes TEG — Revisão final</div></div>
+            </article>
+
+            <article class="office-card" data-project="IME-MC-1-44091">
+              <div class="card-top">
+                <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6zM14.5 7l2.5 2.5"/></svg>
+                <div class="card-top-text"><strong>Concluído por Edflávio</strong>19/06/2026 · 16:06</div>
+              </div>
+              <div class="card-mid">
+                <div class="card-file">
+                  <svg viewBox="0 0 24 24"><path d="M3 18h18M5 14h14M7 10h10M9 6h6"/></svg>
+                  <span class="card-check"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg></span>
+                </div>
+              </div>
+              <div class="card-bottom"><div class="card-code">IME-MC-1-44091</div><div class="card-name">Estrutura secundária — Convés</div></div>
+            </article>
+          </div>
+        </div>
+
+        <div class="section panel">
+          <div class="panel-head"><span>Atividades recentes</span><button class="section-link">Abrir histórico</button></div>
+          <ul class="activity-list">
+            <li class="activity-item">
+              <div class="activity-icon"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/></svg></div>
+              <div><div class="activity-title">PDF IME-MC-1-44351 Rev.0 adicionado ao projeto</div><div class="activity-sub">Projeto atual · Documentos</div></div>
+              <div class="activity-time">Hoje, 16:40</div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon"><svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6z"/></svg></div>
+              <div><div class="activity-title">Etapa “Detalhamento” atualizada para 68%</div><div class="activity-sub">Edflávio Calavort</div></div>
+              <div class="activity-time">Hoje, 15:18</div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg></div>
+              <div><div class="activity-title">12 novos desenhos vinculados ao projeto</div><div class="activity-sub">Projeto atual · Desenhos</div></div>
+              <div class="activity-time">Ontem, 17:06</div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- PROJETO ATUAL -->
+      <section class="view" id="current-project">
+        <div class="page-head">
+          <div><h1 class="page-title">Projeto atual</h1><div class="page-desc">IME-MC-1-44351 — GDM FPSO - TEG &amp; Gas Dehydration</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn"><svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6z"/></svg>Editar projeto</button>
+            <button class="btn" id="reopenStagesButton"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2"/><path d="M18.5 2.5v4h-4"/><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M5.5 21.5v-4h4"/></svg>Reabrir etapa</button>
+            <button class="btn" id="raiseRevisionButton" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-5V2"/><path d="M20 7a8 8 0 0 0-13.7-3.7L4 5.6"/><path d="M4 17h5v5"/><path d="M4 17a8 8 0 0 0 13.7 3.7l2.3-2.3"/></svg>Subir revisão</button>
+            <button class="btn primary" id="finalizeProjectButton"><svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9"/></svg>Finalizar projeto</button>
+          </div>
+        </div>
+        <div class="project-tabs" role="tablist" aria-label="Seções do projeto atual">
+          <button class="project-tab active" data-project-tab="summary">Resumo</button>
+          <button class="project-tab" data-project-tab="stages">Etapas</button>
+          <button class="project-tab" data-project-tab="issues">Pendências</button>
+          <button class="project-tab" data-project-tab="history">Histórico</button>
+          <button class="project-tab" data-project-tab="files">Arquivos</button>
+        </div>
+
+        <!-- RESUMO -->
+        <div class="project-tab-panel active" id="project-tab-summary">
+          <div class="project-grid">
+            <div class="panel">
+              <div class="panel-head">Situação do projeto</div>
+              <div class="summary-overview">
+                <div class="summary-top">
+                  <div class="summary-card">
+                    <div class="summary-label">Status</div>
+                    <div class="summary-main small"><span class="status-pill progressing">Em detalhamento</span></div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Progresso</div>
+                    <div class="summary-main">68%</div>
+                    <div class="summary-meter"><span style="width:68%"></span></div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Horas no projeto</div>
+                    <div class="summary-main">126h 40min</div>
+                  </div>
+                  <div class="summary-card">
+                    <div class="summary-label">Pendências abertas</div>
+                    <div class="summary-main">4</div>
+                  </div>
+                </div>
+                <div class="summary-bottom">
+                  <div class="summary-row"><span class="summary-row-label">Etapa atual</span><span class="summary-row-value">Iniciar detalhamento</span></div>
+                  <div class="summary-row"><span class="summary-row-label">Prazo</span><span class="summary-row-value">26/07/2026</span></div>
+                  <div class="summary-row"><span class="summary-row-label">Última atualização</span><span class="summary-row-value">Hoje, 16:40</span></div>
+                  <div class="summary-row"><span class="summary-row-label">Próxima ação</span><span class="summary-row-value">Criar detalhes de peça</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">Etapas</div>
+              <ul class="steps">
+                <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Limpeza do modelo 3D para detalhamento</div><div class="step-meta">Concluída</div></div><div class="step-date"></div></li>
+                <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Identificação e numeração dos conjuntos no modelo 3D</div><div class="step-meta">Concluída</div></div><div class="step-date"></div></li>
+                <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Configuração das folhas do multidesenho</div><div class="step-meta">Concluída</div></div><div class="step-date"></div></li>
+                <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Preparação das vistas-base para lista de material e detalhamento</div><div class="step-meta">Concluída</div></div><div class="step-date"></div></li>
+                <li class="step current"><div class="step-mark"></div><div><div class="step-name">Iniciar detalhamento</div><div class="step-meta">Em andamento</div></div><div class="step-date"></div></li>
+                <li class="step"><div class="step-mark"></div><div><div class="step-name">Criação dos detalhes de peças para fabricação</div><div class="step-meta">Aguardando</div></div><div class="step-date"></div></li>
+                <li class="step"><div class="step-mark"></div><div><div class="step-name">Distribuição das vistas de detalhamento nas folhas</div><div class="step-meta">Aguardando</div></div><div class="step-date"></div></li>
+                <li class="step"><div class="step-mark"></div><div><div class="step-name">Distribuição dos detalhes de peças nas folhas</div><div class="step-meta">Aguardando</div></div><div class="step-date"></div></li>
+                <li class="step"><div class="step-mark"></div><div><div class="step-name">Numeração das soldas</div><div class="step-meta">Aguardando</div></div><div class="step-date"></div></li>
+                <li class="step"><div class="step-mark"></div><div><div class="step-name">Preenchimento da tabela de revisão e finalização do desenho</div><div class="step-meta">Aguardando</div></div><div class="step-date"></div></li>
+              </ul>
+              <div class="stage-reopen-actions" hidden>
+                <button type="button" class="btn primary" data-stage-reopen-ok>OK</button>
+                <button type="button" class="btn" data-stage-reopen-cancel>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ETAPAS -->
+        <div class="project-tab-panel" id="project-tab-stages">
+          <div class="panel">
+            <div class="panel-head">
+              <span>Etapas do detalhamento</span>
+              <div class="panel-head-actions">
+                <button class="btn" id="adjustStageTimeButton">Ajustar tempo</button>
+                <button class="btn" id="editStagesButton">Editar etapas</button>
+              </div>
+            </div>
+            <div class="stage-overview">
+              <div class="stage-overview-row"><span>4 de 10 etapas concluídas</span><strong>68%</strong></div>
+              <div class="stage-progress"><span></span></div>
+            </div>
+            <ul class="steps">
+              <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Limpeza do modelo 3D para detalhamento</div><div class="step-meta">Concluída</div></div><div class="step-date">18/05</div></li>
+              <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Identificação e numeração dos conjuntos no modelo 3D</div><div class="step-meta">Concluída</div></div><div class="step-date">19/05</div></li>
+              <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Configuração das folhas do multidesenho</div><div class="step-meta">Concluída</div></div><div class="step-date">22/05</div></li>
+              <li class="step done"><div class="step-mark" aria-hidden="true"></div><div><div class="step-name">Preparação das vistas-base para lista de material e detalhamento</div><div class="step-meta">Concluída</div></div><div class="step-date">25/05</div></li>
+              <li class="step current"><div class="step-mark"></div><div><div class="step-name">Iniciar detalhamento</div><div class="step-meta">Em andamento · 68% concluído</div></div><div class="step-date"></div></li>
+              <li class="step"><div class="step-mark"></div><div><div class="step-name">Criação dos detalhes de peças para fabricação</div><div class="step-meta">Não iniciada</div></div><div class="step-date"></div></li>
+              <li class="step"><div class="step-mark"></div><div><div class="step-name">Distribuição das vistas de detalhamento nas folhas</div><div class="step-meta">Não iniciada</div></div><div class="step-date"></div></li>
+              <li class="step"><div class="step-mark"></div><div><div class="step-name">Distribuição dos detalhes de peças nas folhas</div><div class="step-meta">Não iniciada</div></div><div class="step-date"></div></li>
+              <li class="step"><div class="step-mark"></div><div><div class="step-name">Numeração das soldas</div><div class="step-meta">Não iniciada</div></div><div class="step-date"></div></li>
+              <li class="step"><div class="step-mark"></div><div><div class="step-name">Preenchimento da tabela de revisão e finalização do desenho</div><div class="step-meta">Não iniciada</div></div><div class="step-date"></div></li>
+            </ul>
+            <div class="stage-reopen-actions" hidden>
+              <button type="button" class="btn primary" data-stage-reopen-ok>OK</button>
+              <button type="button" class="btn" data-stage-reopen-cancel>Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PENDÊNCIAS -->
+        <div class="project-tab-panel" id="project-tab-issues">
+          <div class="panel">
+            <div class="panel-head"><span>Pendências do projeto</span><button class="btn" style="height:28px">Nova pendência</button></div>
+            <ul class="issue-list">
+              <li class="issue-item"><div><div class="issue-title">Confirmar espessura da chapa da PEÇA 19.3</div><div class="issue-sub">Vinculada ao desenho IME-MC-1-44351 · FL. 08</div></div><div><span class="priority high">Alta</span></div><div>Edflávio</div><div>Hoje</div></li>
+              <li class="issue-item"><div><div class="issue-title">Validar revisão do documento de referência 4173-94-2300</div><div class="issue-sub">Aguardando retorno do cliente</div></div><div><span class="priority medium">Média</span></div><div>R. Santos</div><div>15/07</div></li>
+              <li class="issue-item"><div><div class="issue-title">Revisar identificação dos suportes 87 a 91</div><div class="issue-sub">Verificação interna antes da emissão</div></div><div><span class="priority medium">Média</span></div><div>Edflávio</div><div>18/07</div></li>
+              <li class="issue-item"><div><div class="issue-title">Anexar planilha final da lista de materiais</div><div class="issue-sub">Documentação de fechamento</div></div><div><span class="priority low">Baixa</span></div><div>Marcelo G.</div><div>25/07</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- HISTÓRICO -->
+        <div class="project-tab-panel" id="project-tab-history">
+          <div class="panel">
+            <div class="panel-head">Histórico do projeto</div>
+            <ul class="history-list">
+              <li class="history-item"><div class="history-icon"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/></svg></div><div><div class="history-title">PDF IME-MC-1-44351 Rev.0 adicionado ao projeto</div><div class="history-meta">Edflávio Calavort · Arquivos</div></div><div class="history-date">Hoje, 16:40</div></li>
+              <li class="history-item"><div class="history-icon"><svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L18 8.5 15.5 6z"/></svg></div><div><div class="history-title">Etapa “Detalhamento” atualizada para 68%</div><div class="history-meta">Edflávio Calavort · Etapas</div></div><div class="history-date">Hoje, 15:18</div></li>
+              <li class="history-item"><div class="history-icon"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg></div><div><div class="history-title">12 desenhos vinculados ao projeto</div><div class="history-meta">Sistema · Desenhos</div></div><div class="history-date">Ontem, 17:06</div></li>
+              <li class="history-item"><div class="history-icon"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg></div><div><div class="history-title">Projeto criado e definido como projeto ativo</div><div class="history-meta">Edflávio Calavort · Cadastro</div></div><div class="history-date">18/05/2026</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ARQUIVOS -->
+        <div class="project-tab-panel" id="project-tab-files">
+          <div class="panel">
+            <div class="panel-head"><span>Arquivos vinculados</span><button class="btn" style="height:28px">Adicionar arquivo</button></div>
+            <ul class="file-list">
+              <li class="file-item"><div class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/></svg></div><div><div class="file-title">IME-MC-1-44351 Rev.0.pdf</div><div class="file-sub">Documento principal do projeto</div></div><div class="file-type">PDF · 24 páginas</div><div class="file-date">Hoje, 16:40</div><div class="file-actions"><button class="mini-action">Abrir</button><button class="mini-action">Pasta</button></div></li>
+              <li class="file-item"><div class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5h6l1.5 2H20v11H4z"/></svg></div><div><div class="file-title">Modelo do projeto — IME-MC-1-44351</div><div class="file-sub">Pasta do modelo ativo</div></div><div class="file-type">Modelo</div><div class="file-date">Hoje, 15:55</div><div class="file-actions"><button class="mini-action">Abrir</button><button class="mini-action">Pasta</button></div></li>
+              <li class="file-item"><div class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></div><div><div class="file-title">Controle Detalhamento Pipe Support.xlsm</div><div class="file-sub">Planilha de acompanhamento</div></div><div class="file-type">Excel</div><div class="file-date">11/07/2026</div><div class="file-actions"><button class="mini-action">Abrir</button><button class="mini-action">Pasta</button></div></li>
+              <li class="file-item"><div class="file-type-icon"><svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/></svg></div><div><div class="file-title">4173-94-2300-G16-0021-001 Rev.1.pdf</div><div class="file-sub">Documento de referência</div></div><div class="file-type">PDF</div><div class="file-date">08/07/2026</div><div class="file-actions"><button class="mini-action">Abrir</button><button class="mini-action">Pasta</button></div></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROJETOS -->
+      <section class="view" id="projects">
+        <div class="page-head">
+          <div><h1 class="page-title">Projetos</h1><div class="page-desc">Consulte projetos ativos, concluídos, pausados ou arquivados.</div></div>
+          <button class="btn primary" data-view="new-project"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo projeto</button>
+        </div>
+        <div class="panel">
+          <div class="toolbar">
+            <input class="field-inline grow" id="projectSearch" placeholder="Pesquisar por código, OS, título ou cliente" />
+            <select class="field-inline"><option>Todos os status</option><option>Em andamento</option><option>Concluído</option><option>Pausado</option></select>
+            <select class="field-inline"><option>2026</option><option>2025</option><option>Todos os anos</option></select>
+            <button class="btn">Filtrar</button>
+          </div>
+          <div class="project-list-shell">
+            <div class="project-list-scroll">
+              <table class="project-list-table">
+              <thead><tr><th>Projeto</th><th>Rev.</th><th>OS</th><th>Cliente</th><th>Status</th><th>Emissão</th><th>Revisão</th><th>Progresso</th><th>Ações</th></tr></thead>
+              <tbody id="projectRows">
+                <tr class="project-row"><td><strong>IME-MC-1-44351</strong></td><td>GDM FPSO — ISUP Lateral</td><td>SLB</td><td>Edflávio</td><td><span class="status-pill progressing">Em andamento</span></td><td><div class="tiny-progress"><span style="width:68%"></span></div></td><td>Hoje, 16:40</td></tr>
+                <tr class="project-row"><td><strong>IME-MC-1-44298</strong></td><td>Pipe Support — Módulo B</td><td>MODEC</td><td>Edflávio</td><td><span class="status-pill done">Concluído</span></td><td><div class="tiny-progress"><span style="width:100%;background:var(--success)"></span></div></td><td>11/07/2026</td></tr>
+                <tr class="project-row"><td><strong>IME-MC-1-44273</strong></td><td>Cable Tray Support — Área 3</td><td>SLB</td><td>R. Santos</td><td><span class="status-pill done">Concluído</span></td><td><div class="tiny-progress"><span style="width:100%;background:var(--success)"></span></div></td><td>08/07/2026</td></tr>
+                <tr class="project-row"><td><strong>IME-MC-1-44221</strong></td><td>Estrutura secundária — Deck 2</td><td>MODEC</td><td>Marcelo G.</td><td><span class="status-pill paused">Pausado</span></td><td><div class="tiny-progress"><span style="width:42%"></span></div></td><td>02/07/2026</td></tr>
+                <tr class="project-row"><td><strong>IME-MC-1-44186</strong></td><td>Plataforma de Soldagem 2</td><td>IMETAME</td><td>Marcelo G.</td><td><span class="status-pill done">Concluído</span></td><td><div class="tiny-progress"><span style="width:100%;background:var(--success)"></span></div></td><td>03/07/2026</td></tr>
+              </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOVO PROJETO -->
+      <section class="view" id="new-project">
+        <div class="page-head">
+          <div><h1 class="page-title">Novo projeto</h1><div class="page-desc">Cadastre as informações principais e os caminhos usados durante o desenvolvimento.</div></div>
+        </div>
+        <form class="form-shell" id="newProjectForm" autocomplete="off">
+          <div class="form-section">
+            <div class="form-section-title">Identificação</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Código do projeto</label><input data-project-field="code" required autocomplete="off" placeholder="Ex.: IME-MC-1-44352" /></div>
+              <div class="form-group"><label>OS</label><div class="project-suggestion-control"><input data-project-field="os_number" data-project-suggestion="os_number" inputmode="numeric" pattern="[0-9.]+" autocomplete="off" placeholder="Ex.: 0779.03.004" /><button type="button" class="project-suggestion-toggle" aria-label="Mostrar sugestões de OS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button><div class="project-suggestion-menu" hidden></div></div></div>
+              <div class="form-group"><label>Título</label><input id="projectTitleInput" data-project-field="title" required autocomplete="new-password" aria-autocomplete="none" readonly placeholder="Nome completo do projeto" /></div>
+              <div class="form-group"><label>Cliente</label><div class="project-suggestion-control"><input data-project-field="client" data-project-suggestion="client" autocomplete="off" placeholder="Ex.: SLB" /><button type="button" class="project-suggestion-toggle" aria-label="Mostrar sugestões de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button><div class="project-suggestion-menu" hidden></div></div></div>
+              <div class="form-group"><label>Unidade / área</label><div class="project-suggestion-control"><input data-project-field="area" data-project-suggestion="area" autocomplete="off" placeholder="Ex.: TEG & Gas Dehydration" /><button type="button" class="project-suggestion-toggle" aria-label="Mostrar sugestões de unidade ou área"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button><div class="project-suggestion-menu" hidden></div></div></div>
+              <div class="form-group"><label>Disciplina</label><select data-project-field="discipline"><option>Estruturas metálicas</option><option>Mecânica</option><option>Tubulação</option><option>Outros</option></select></div>
+              <div class="form-group span-3"><label>Descrição</label><textarea id="projectDescriptionInput" data-project-field="description" autocomplete="off" placeholder="Resumo do escopo do projeto"></textarea></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Controle</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Status</label><div class="status-field-row"><select id="projectStatusSelect" data-project-field="status"><option>Em andamento</option></select><button type="button" class="btn status-manage-button" id="manageProjectStatusesButton" title="Gerenciar status" aria-label="Gerenciar status">Gerenciar</button></div></div>
+              <div class="form-group"><label>Prioridade</label><select data-project-field="priority"><option>Normal</option><option>Alta</option><option>Baixa</option></select></div>
+              <div class="form-group"><label>Responsável principal</label><input data-project-field="responsible" placeholder="Nome" /></div>
+              <div class="form-group"><label>Data de início</label><input data-project-field="start_date" type="date" /></div>
+              <div class="form-group"><label>Prazo previsto</label><input data-project-field="due_date" type="date" /></div>
+              <div class="form-group"><label>Revisão inicial</label><input data-project-field="revision" value="0" /></div>
+            </div>
+            <div class="completed-revisions" id="completedRevisionsSection" hidden>
+              <div class="completed-revisions-head">
+                <div>
+                  <div class="completed-revisions-title">Datas das revisões</div>
+                  <div class="completed-revisions-help">Registre a data de emissão de cada revisão do projeto concluído.</div>
+                </div>
+              </div>
+              <div class="completed-revision-grid-head" aria-hidden="true"><span>Revisão</span><span>Data da revisão</span><span></span></div>
+              <div class="completed-revision-list" id="completedRevisionRows"></div>
+              <div class="completed-revisions-actions"><button type="button" class="btn" id="addCompletedRevisionButton">Adicionar revisão</button></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Localização dos arquivos</div>
+            <div class="form-grid">
+              <div class="form-group span-2"><label>Pasta do modelo</label><input data-project-field="model_path" data-location-kind="model" placeholder="C:\...\Modelos\..." /></div>
+              <div class="form-group"><label>Selecionar</label><button type="button" class="btn" data-location-target="model" style="width:100%">Escolher pasta</button></div>
+              <div class="form-group span-2"><label>Pasta dos documentos</label><input data-project-field="document_folder" data-location-kind="documents" placeholder="C:\Projetos\Documentos\..." /></div>
+              <div class="form-group"><label>Selecionar</label><button type="button" class="btn" data-location-target="documents" style="width:100%">Escolher pasta</button></div>
+              <div class="form-group span-2"><label>Planilha de controle</label><input data-project-field="spreadsheet_path" data-location-kind="spreadsheet" placeholder="Arquivo .xlsx ou .xlsm" /></div>
+              <div class="form-group"><label>Selecionar</label><button type="button" class="btn" data-location-target="spreadsheet" style="width:100%">Escolher arquivo</button></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Equipe</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Projetista</label><input data-project-field="projectist_name" placeholder="Nome" /></div>
+              <div class="form-group"><label>Verificador</label><div class="project-suggestion-control"><input data-project-field="checker_name" data-project-suggestion="checker_name" autocomplete="off" placeholder="Nome" /><button type="button" class="project-suggestion-toggle" aria-label="Mostrar sugestões de verificador"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button><div class="project-suggestion-menu" hidden></div></div></div>
+              <div class="form-group"><label>Aprovador</label><div class="project-suggestion-control"><input data-project-field="approver_name" data-project-suggestion="approver_name" autocomplete="off" placeholder="Nome" /><button type="button" class="project-suggestion-toggle" aria-label="Mostrar sugestões de aprovador"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button><div class="project-suggestion-menu" hidden></div></div></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Fluxo de detalhamento</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Programa</label><select data-project-field="program"><option>Tekla Structures</option><option>SolidWorks</option><option>ZWCAD</option></select></div>
+              <div class="form-group"><label>Nível de etapas</label><select data-project-field="stage_mode"><option>Detalhada</option><option>Simples</option></select></div>
+            </div>
+          </div>
+          <div class="form-footer">
+            <button type="button" class="btn" data-view="overview">Cancelar</button>
+            <button type="submit" class="btn primary">Salvar projeto</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- CONFIGURAÇÕES -->
+      <section class="view" id="tracking">
+        <div class="page-head">
+          <div><h1 class="page-title">Acompanhamento</h1><div class="page-desc">Visão consolidada do andamento, prazos, horas e relatórios dos projetos.</div></div>
+          <button class="btn primary">Exportar relatório</button>
+        </div>
+
+        <div class="project-content-grid">
+          <div class="panel">
+            <div class="panel-head">Indicadores</div>
+            <div class="indicator-grid">
+              <div class="indicator-item">
+                <div class="indicator-label">Projetos em andamento</div>
+                <div class="indicator-value">6</div>
+                <div class="indicator-caption">Projetos ativos</div>
+              </div>
+              <div class="indicator-item attention">
+                <div class="indicator-label">Projetos atrasados</div>
+                <div class="indicator-value">1</div>
+                <div class="indicator-caption">Requer atenção</div>
+              </div>
+              <div class="indicator-item danger">
+                <div class="indicator-label">Pendências abertas</div>
+                <div class="indicator-value">12</div>
+                <div class="indicator-caption">Em todos os projetos</div>
+              </div>
+              <div class="indicator-item hours">
+                <div class="indicator-label">Horas no período</div>
+                <div class="indicator-value compact">284h 35min</div>
+                <div class="indicator-caption">Total registrado</div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">Relatórios e exportações</div>
+            <ul class="path-list">
+              <li class="path-item"><div class="path-label">Horas por projeto</div><div class="path-value">Consolidado de horas registradas</div><button class="mini-action" data-report="hours">Gerar</button></li>
+              <li class="path-item"><div class="path-label">Andamento geral</div><div class="path-value">Etapas, progresso e prazos</div><button class="mini-action" data-report="overview">Gerar</button></li>
+              <li class="path-item"><div class="path-label">Pendências</div><div class="path-value">Itens abertos, responsáveis e vencimentos</div><button class="mini-action" data-report="issues">Gerar</button></li>
+              <li class="path-item"><div class="path-label">Projetos concluídos</div><div class="path-value">Histórico por período</div><button class="mini-action" data-report="completed">Gerar</button></li>
+            </ul>
+          </div>
+        </div>
+
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">Acompanhamento dos projetos</div>
+          <div class="toolbar">
+            <input class="field-inline grow" placeholder="Pesquisar projeto, responsável ou etapa" />
+            <select class="field-inline"><option>Todos os status</option><option>Em andamento</option><option>Atrasados</option><option>Concluídos</option></select>
+            <button class="btn">Filtrar</button>
+          </div>
+          <div style="overflow:auto">
+            <table class="tracking-project-table">
+              <thead><tr><th>Projeto</th><th>Etapa atual</th><th>Progresso</th><th>Horas</th><th>Pendências</th><th>Prazo</th><th>Situação</th></tr></thead>
+              <tbody>
+                <tr><td><strong>IME-MC-1-44351</strong></td><td>Detalhamento</td><td>68%</td><td>126h 40min</td><td>4</td><td>26/07/2026</td><td><span class="status-pill progressing">Em andamento</span></td></tr>
+                <tr><td><strong>IME-MC-1-44350</strong></td><td>Verificação</td><td>92%</td><td>84h 15min</td><td>1</td><td>18/07/2026</td><td><span class="status-pill progressing">Em andamento</span></td></tr>
+                <tr><td><strong>IME-MC-1-44349</strong></td><td>Emissão</td><td>100%</td><td>73h 20min</td><td>0</td><td>10/07/2026</td><td><span class="status-pill done">Concluído</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+      <!-- INDICADORES -->
+      <section class="view" id="indicators">
+        <div class="page-head">
+          <div><h1 class="page-title">Indicadores</h1><div class="page-desc">Consulte o peso, os conjuntos e as horas de todos os projetos cadastrados.</div></div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn" id="editIndicatorsButton">Editar dados</button>
+            <button type="button" class="btn primary" id="importIndicatorsPdfButton">Importar PDF</button>
+          </div>
+        </div>
+        <div class="drawing-indicators-shell">
+          <div class="panel indicator-projects-panel">
+            <div class="indicator-projects-head"><strong>Projetos cadastrados</strong><span>Selecione um projeto para consultar ou registrar os indicadores.</span></div>
+            <div class="indicator-projects-table-shell">
+              <div class="indicator-projects-table-wrap">
+                <table class="indicator-project-table">
+                <thead><tr><th>Projeto</th><th>Status</th><th>Peso total</th><th>Conjuntos</th><th>Horas</th><th>Última importação</th></tr></thead>
+                  <tbody id="indicatorProjectRows"><tr><td colspan="6"><div class="indicator-empty"><strong>Nenhum projeto cadastrado</strong>Cadastre um projeto para registrar os indicadores.</div></td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="panel indicator-detail-panel">
+            <div class="drawing-indicators-context">
+              <div class="drawing-indicators-context-main">
+                <div class="drawing-indicators-code" id="indicatorProjectCode">Nenhum projeto selecionado</div>
+                <div class="drawing-indicators-sub" id="indicatorProjectTitle">Selecione um projeto na lista acima.</div>
+              </div>
+              
+            </div>
+            <div class="drawing-indicators-summary">
+              <div class="drawing-indicator-cell"><div class="drawing-indicator-label">Peso total</div><div class="drawing-indicator-value" id="indicatorTotalWeight">—</div></div>
+              <div class="drawing-indicator-cell"><div class="drawing-indicator-label">Conjuntos</div><div class="drawing-indicator-value" id="indicatorAssemblyCount">0</div></div>
+              <div class="drawing-indicator-cell"><div class="drawing-indicator-label">Horas no projeto</div><div class="drawing-indicator-value" id="indicatorProjectHours">0h 00min</div></div>
+              <div class="drawing-indicator-cell"><div class="drawing-indicator-label">Última importação</div><div class="drawing-indicator-value small" id="indicatorLastImport">Ainda não importado</div></div>
+            </div>
+            <div class="drawing-indicators-table-wrap">
+              <table class="indicator-assembly-table">
+                <thead><tr><th>Item</th><th>TAG do conjunto</th><th>Peso</th></tr></thead>
+                <tbody id="indicatorAssemblyRows"><tr><td colspan="3"><div class="indicator-empty"><strong>Sem desenho selecionado</strong>Selecione um projeto na lista acima.</div></td></tr></tbody>
+              </table>
+            </div>
+            <div class="indicator-source-note" id="indicatorSourceNote">Os dados podem ser importados do PDF ou informados manualmente.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="settings"><div class="page-head"><div><h1 class="page-title">Configurações</h1><div class="page-desc">Preferências gerais, status e caminhos padrão.</div></div></div><div class="empty-page"><div><svg viewBox="0 0 24 24"><path d="M14.7 3.5 14.2 6a7 7 0 0 1 1.7 1l2.4-.8 1.4 2.5-1.9 1.6a7 7 0 0 1 0 2.4l1.9 1.6-1.4 2.5-2.4-.8a7 7 0 0 1-1.7 1l.5 2.5H9.3l.5-2.5a7 7 0 0 1-1.7-1l-2.4.8-1.4-2.5 1.9-1.6a7 7 0 0 1 0-2.4L4.3 8.7l1.4-2.5 2.4.8a7 7 0 0 1 1.7-1l-.5-2.5z"/><circle cx="12" cy="12" r="3.1"/></svg><strong>Configurações do sistema</strong>Defina etapas, caminhos padrão, usuários e preferências.</div></div></section>
+    </div>
+    <footer class="app-footer">Programa desenvolvido por Edflávio Calavort - 2026</footer>
+  </main>
+</div>
+<div class="toast" id="toast">Projeto salvo com sucesso.</div>
+
+<script src="/static/js/app.js?v=20260730-v30"></script>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+Flask>=3.0,<4
+
+# waitress: servidor WSGI usado no lugar do servidor de desenvolvimento do Flask
+# (remove o aviso vermelho "development server" e é mais robusto).
+waitress>=3.0
+
+# pywin32: automação do Excel (COM) para preencher a planilha de tramitação ao
+# finalizar um projeto (app/spreadsheet.py). Necessário apenas no Windows com Excel.
+pywin32>=306
+
+# pythonnet foi removido: a integração automática com o Tekla (Open API) foi desativada.
+# Reinstale pythonnet>=3.0,<4 caso a leitura automática do Tekla volte a ser usada.
+
+# pypdf: leitura da lista de material dos PDFs na página Indicadores.
+pypdf>=5.0,<7
+
+# PyMuPDF: leitura alternativa para PDFs pesquisáveis que o pypdf não consegue extrair.
+PyMuPDF>=1.24,<2
+
+# Dependencias do mini app incorporado "Progresso de detalhamento".
+pywebview>=5.0
+pythonnet>=3.0

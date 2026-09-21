@@ -1,0 +1,3 @@
+# Caminho de reserva. A versão do Tekla que estiver aberta é detectada primeiro.
+# Não coloque "bin" no final.
+C:\Program Files\Tekla Structures\2025.0

@@ -1,0 +1,8 @@
+{
+  "app_name": "Controle de Projetos",
+  "host": "127.0.0.1",
+  "normal_interval_seconds": 60,
+  "idle_interval_seconds": 300,
+  "inactivity_tolerance_seconds": 300
+}
+

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+
+data/
+exports/
+logs/
+
+*.sqlite
+*.sqlite-*
+*.db
+*.db1
+*.log
+
+app/progresso_detalhamento/estatisticas_detalhamento.json

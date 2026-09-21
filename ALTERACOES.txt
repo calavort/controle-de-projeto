@@ -1,0 +1,423 @@
+VERSÃO 43 - 14/08/2026
+- Corrigida a descrição exibida dos componentes no modo Por componente: agora a lista Detalhados e a guia Estatística usam a descrição da própria peça/subitem (ex.: CH. 10X55X300), em vez da descrição geral do conjunto (ex.: COAMING PLATE - 1° EL.).
+- A correção também atualiza os registros de Tempo por componente após a próxima análise, preservando tempos, banco, cache e histórico existentes.
+
+R40 - 14/08/2026
+- Corrigida a medição Por componente: o TOTAL continua sequencial por conjunto (ex.: 1.126 = 126), mas DETALHADOS agora conta somente cada componente decimal efetivamente encontrado em uma vista válida.
+- Removida a regra incorreta de fronteira que fazia 1.98 concluir automaticamente 1.1 até 1.98.
+- Componentes novos abaixo do maior número já visto (ex.: 1.27, 1.93 ou 1.94) agora aumentam DETALHADOS, reduzem FALTANDO e alteram a porcentagem.
+- A guia Estatística agora acompanha o conjunto pelo número real de componentes detectados e registra cada novo componente individualmente em Componentes detalhados por dia.
+- Migração do histórico R39: como a versão anterior não armazenava quais componentes individuais estavam detalhados, a primeira análise da R40 cria uma base inicial sem inventar datas. A partir dessa base, qualquer novo componente é registrado no dia correto.
+
+CONTROLE DE PROJETO - HISTORICO DE ALTERACOES
+
+REVISAO 38
+
+1. CORRECAO DO TOTAL POR COMPONENTE
+- A medicao Por componente nao conta mais apenas as posicoes decimais distintas encontradas no modelo.
+- O total agora respeita a sequencia numerica de cada conjunto: se o conjunto termina em 1.126, ele representa 126 componentes para o progresso.
+- No IME-MC-1-43469, a referencia fica 126 + 57 + 26 = 209 componentes.
+
+2. CORRECAO DO AVANCO DOS COMPONENTES
+- O progresso agora usa a maior posicao sequencial efetivamente alcançada em vistas validas de detalhamento de cada conjunto.
+- Exemplo: se uma vista valida ja alcançou 1.98, o conjunto 1 contabiliza avanço ate o componente 98.
+- Vistas-base configuradas, como VISTA FRONTAL, A-A ou AC-AC, continuam ignoradas e nao antecipam o avanço.
+- DetailViews continuam valendo como evidencia no modo Por componente, sem alterar a regra historica do modo Por conjunto nem o rastreamento de tempo.
+
+3. PRESERVACAO
+- Banco de dados, registros, caches, historicos, distribuicao de tempo e configuracoes existentes foram mantidos.
+
+REVISAO 36
+
+1. CORRECAO DA IDENTIFICACAO DE VISTAS-BASE
+- Corrigida a comparacao entre o nome digitado em Configuracoes e o nome retornado pela Open API do Tekla.
+- Agora A-A reconhece A, A-A e rotulos como CORTE "A-A"; da mesma forma, AC-AC reconhece AC e CORTE "AC-AC".
+- A comparacao continua restrita a aliases equivalentes, sem usar correspondencia parcial genérica.
+- Vistas-base reconhecidas continuam fornecendo localizacao dos componentes, mas nao contam como detalhamento concluido no modo Por componente.
+
+2. ATUALIZACAO IMEDIATA
+- Ao salvar alteracoes em Medicao do progresso ou Vistas-base ignoradas, a analise agora e refeita imediatamente.
+- Antes, ao alterar apenas a lista de vistas-base, a tela podia permanecer com o resultado anterior ate a proxima atualizacao automatica.
+- Adicionado diagnostico caso nenhuma vista configurada seja reconhecida no desenho.
+
+3. PRESERVACAO
+- Banco de dados, registros, caches, historico de detalhamento, tempos e demais correcoes da Revisao 35 foram mantidos.
+
+REVISAO 35
+
+1. PROGRESSO POR COMPONENTE
+- O nome da opcao "Por subitem (componentes)" foi simplificado para "Por componente".
+- A leitura por componente nao considera mais uma marca existente em uma vista-base como prova de que o componente foi concluido.
+- Se o mesmo componente aparecer depois em um corte ou em outra vista valida, ele passa normalmente para Detalhados.
+- A medicao por conjunto e o rastreamento de tempo foram preservados sem alteracao.
+
+2. VISTAS-BASE IGNORADAS
+- Adicionado em Configuracoes o campo "Vistas-base ignoradas no progresso por componente".
+- O campo aceita uma ou varias vistas, uma por linha, e tambem reconhece separacao por ponto e virgula ou virgula.
+- A comparacao ignora espacos e sinais; por exemplo, "AC - AC" e "AC-AC" sao tratados como o mesmo nome.
+- "VISTA FRONTAL" fica cadastrada inicialmente para corrigir o caso do desenho IME-MC-1-43469.
+- Quando uma planta-base tiver outro nome, como "AC - AC", basta adiciona-la nesse campo.
+
+3. PRESERVACAO
+- Banco de dados, registros, caches de detalhamento, tempos, projetos e demais correcoes da Revisao 34 foram mantidos.
+
+REVISAO 34
+
+1. DISTRIBUICAO DE TEMPO EM ETAPAS FORA DE ORDEM
+- Ao concluir uma etapa deixando etapas anteriores pendentes, o programa agora pergunta onde o tempo transcorrido deve ser registrado.
+- A opcao "Todo o tempo nesta etapa" registra o periodo integralmente na etapa que esta sendo concluida.
+- A opcao "Distribuir o tempo" mostra as etapas anteriores ainda pendentes e divide igualmente o periodo entre todas as etapas selecionadas.
+- Depois do registro, somente a primeira etapa ainda pendente permanece com o relogio em andamento; etapas posteriores nao ficam mais contando tempo em paralelo.
+- O tempo distribuido fica registrado no historico de tempo das etapas, sem duplicar as horas totais do projeto.
+
+2. PROGRESSO DE DETALHAMENTO POR SUBITEM
+- Adicionada em Configuracoes a opcao "Medicao do progresso": Por conjunto ou Por subitem (componentes).
+- Por conjunto preserva exatamente a regra anterior: um conjunto detalhado entre tres representa 33,3%.
+- Por subitem, o total passa a considerar as posicoes decimais reais das pecas do modelo (ex.: 1.1, 1.2, 1.126) e o progresso e calculado pela quantidade efetivamente detalhada.
+- A mudanca de modo atualiza a leitura imediatamente e continua alimentando a etapa "Iniciar detalhamento" no Controle de Projeto.
+
+3. REGISTROS DO EXECUTAVEL 28
+- O banco de dados do executavel 28 foi incorporado ao programa-fonte 27.
+- Foi incorporado o historico/cache do Progresso de detalhamento; os backups originais do programa-fonte foram mantidos.
+- O tempo anteriormente identificado como incorreto na etapa "Criação dos detalhes de peças para fabricação" do IME-MC-1-44348 nao foi herdado do executavel 28.
+- O projeto ativo IME-MC-1-43469 e os demais registros existentes no executavel 28 foram preservados.
+
+REVISAO 33
+
+1. ULTIMA ATUALIZACAO
+- Em Projeto atual, o campo "Última atividade" passou a se chamar "Última atualização".
+- Visão geral e Projeto atual agora exibem exatamente a mesma data e hora.
+- O horário considera o registro mais recente entre alterações do projeto, histórico de atividades e a análise real do Progresso de detalhamento.
+
+2. FOLHAS EM TEMPO REAL
+- A quantidade de folhas passa a acompanhar continuamente a maior margem temporária reconhecida pelo Progresso de detalhamento.
+- O valor é atualizado mesmo antes da importação do PDF em Indicadores.
+- Quando existirem dados de PDF ou desenhos cadastrados, o programa preserva e usa o maior total válido entre todas as fontes.
+
+3. PRESERVACAO DOS REGISTROS
+- A correção foi aplicada sobre o programa enviado nesta solicitação.
+- Banco de dados, projetos, etapas, horas, indicadores, revisões, configurações, histórico do detalhamento e backups foram mantidos.
+
+REVISAO 32
+
+1. VISAO GERAL
+- O campo "Última atividade" foi renomeado para "Última atualização".
+- O horário exibido passa a usar o registro mais recente do histórico do projeto.
+- Atualizações automáticas do progresso de detalhamento agora aparecem imediatamente com a hora real em que foram registradas.
+
+2. PRESERVACAO DOS REGISTROS
+- Banco de dados, projetos, etapas, horas, indicadores, revisões, configurações e históricos existentes foram mantidos.
+
+REVISAO 29
+
+1. PROGRESSO REAL DA ETAPA DETALHAMENTO
+- O Progresso de Detalhamento passa a ser a fonte oficial do percentual interno da etapa Detalhamento.
+- A contagem exibida na mini interface atualiza a mesma etapa no Controle de Projeto, sem criar um segundo percentual.
+- O percentual medido e aplicado proporcionalmente ao peso de 47% da etapa no progresso geral.
+- No registro atual, 79 de 86 conjuntos representam 91,9% da etapa e 66,19% do projeto geral.
+- Ao atingir 100%, a etapa contribui com os 47 pontos completos do projeto.
+
+2. PRESERVACAO DOS REGISTROS
+- Corrigida a uniao dos caches para preservar total, detalhados, faltantes e percentual da leitura mais recente.
+- Banco de dados, projetos, etapas, horas, indicadores, revisoes, configuracoes e historicos existentes foram mantidos.
+
+REVISAO 16
+
+1. TITULOS DOS AGRUPAMENTOS
+- Na pagina Projetos, o agrupamento dos projetos ainda nao concluidos passa a se chamar Projetos.
+- Em Indicadores, o mesmo agrupamento passa a se chamar Projetos cadastrados.
+
+2. RESPONSAVEL E PROJETISTA
+- Removido o nome antigo Jose Edflavio Calavort dos valores fixos da interface e do banco inicial.
+- O Responsavel principal e o Projetista recebem inicialmente o nome salvo em Configuracoes.
+- Esses campos continuam editaveis em cada projeto e nao sao mais sobrescritos ao salvar.
+- Alterar o Projetista em Configuracoes nao modifica automaticamente os projetos que foram personalizados.
+
+3. DADOS PRESERVADOS
+- Os quatro projetos, etapas, horas, observacoes, historicos e configuracoes existentes no executavel 28 foram incorporados ao programa-fonte corrigido.
+
+REVISAO 15
+
+1. LISTA DE PROJETOS
+- A coluna Acoes foi substituida por um unico botao com seta para baixo.
+- O menu da seta reune Subir revisao e Excluir projeto.
+- A tabela foi reduzida para Projeto, Rev., OS, Cliente, Status, Periodo, Progresso e Acoes.
+- Codigo e titulo agora aparecem juntos na coluna Projeto.
+- Responsavel, Prioridade e Atualizacao deixaram a lista principal para reduzir a largura e a carga visual.
+- Inicio e Conclusao foram combinados na coluna Periodo.
+
+2. AGRUPAMENTO MENSAL
+- Os cabecalhos dos meses ficaram mais baixos e discretos.
+- Removidas as bordas fortes que faziam cada mes parecer uma tabela separada.
+- Mantida a quantidade de projetos alinhada a direita.
+
+3. DADOS PRESERVADOS
+- Banco de dados, projetos, indicadores, horas, historicos e configuracoes existentes foram mantidos.
+
+REVISAO 14
+
+1. IMPORTACAO DA LISTA DE MATERIAL
+- Corrigida a leitura do PDF IME-MC-1-43300, cujo texto pesquisavel nao era extraido pelo leitor principal.
+- Incluida leitura alternativa por PyMuPDF, sem OCR, para PDFs pesquisaveis gerados ou mesclados em formatos incompatíveis com o pypdf.
+- Listas estruturais com conjuntos nomeados, como PLATAFORMA - 01, passam a ser reconhecidas mesmo quando nao possuem TAG extensa.
+
+2. PROJETISTA E RESPONSAVEL
+- O nome salvo em Configuracoes passa a ser a fonte do Responsavel e do Projetista nos projetos.
+- Ao alterar o nome do projetista em Configuracoes, todos os projetos existentes sao atualizados automaticamente.
+- Novos cadastros e edicoes deixam de restaurar um nome antigo salvo no projeto.
+- Todos os projetos preservados no banco entregue foram sincronizados para Edflavio Calavort.
+
+REVISAO 13
+
+1. AGRUPAMENTO POR CONCLUSAO
+- Projetos concluidos passam a usar a data de conclusao informada no cadastro, e nao a data em que foram cadastrados ou editados.
+- Cadastros antigos concluidos sem data tecnica vinculada sao corrigidos automaticamente sem apagar registros.
+- A mudanca de status para Concluido durante a edicao atualiza automaticamente a conclusao, as etapas e o agrupamento mensal.
+
+2. NOVO PROJETO
+- Cliente, OS e Unidade / area agora mantem um historico persistente de valores e apresentam sugestoes durante a digitacao.
+- Status foi convertido para selecao fechada: a seta funciona diretamente e o campo nao permite digitacao.
+- Removida a caixa de sugestao indevida exibida abaixo do campo Status.
+- A seta do Status passa a seguir o mesmo estilo dos demais campos de selecao.
+
+3. PROJETOS
+- Removido o icone do botao Subir revisao na coluna Acoes, mantendo somente o texto.
+- Banco de dados, projetos, indicadores, horas e demais registros existentes foram preservados.
+
+REVISAO 12
+
+1. RELATORIOS
+- O relatorio Andamento geral passa a utilizar toda a largura disponivel da tela.
+- Textos, titulos e colunas dos relatorios foram corrigidos com acentuacao.
+- Relatorios enriquecidos com revisao, datas de inicio e conclusao, horas, folhas, peso total, conjuntos e produtividade quando houver PDF importado.
+- Incluida secao Destaques com informacoes consolidadas especificas para cada tipo de relatorio.
+- Os quatro relatorios agora possuem conteudos distintos e adequados a sua finalidade.
+
+2. INTERFACE
+- Removido o botao Associar modelo.
+- Icone de Subir revisao substituido por setas circulares profissionais.
+- Projetos passa a exibir Data de inicio e Data de conclusao.
+- Projetos concluidos sao agrupados por mes e ano de conclusao.
+- Projetos sem conclusao permanecem em um grupo proprio.
+- Em Indicadores, Desenhos cadastrados foi alterado para Projetos cadastrados.
+- A lista de Indicadores tambem foi agrupada por mes e ano de conclusao.
+
+3. NOMES DOS ARQUIVOS
+- A revisao permanece somente no nome do arquivo ZIP.
+- Arquivos internos usam nomes fixos, sem numero de revisao.
+
+CONTROLE DE PROJETO - REVISAO 11
+
+1. SUBIR REVISAO
+- A revisao agora altera somente o valor da revisao do projeto.
+- Etapas, status, progresso, arquivos e indicadores nao sao reiniciados.
+- A janela solicita a nova revisao e o tempo adicional em horas e minutos.
+- O tempo informado e somado as horas do projeto.
+- A data de cada revisao fica registrada e aparece no historico da janela.
+- Icone da funcao Subir revisao substituido por documento com edicao.
+
+2. STATUS DO PROJETO
+- Campo Status substitui o antigo nome Status inicial.
+- Novo projeto inicia por padrao com o status Em andamento.
+- O campo aceita categorias personalizadas.
+- Botao de gerenciamento permite adicionar e remover categorias de status.
+- Em andamento e Concluido permanecem como categorias essenciais do sistema.
+
+3. ACOMPANHAMENTO
+- Indicadores e Relatorios e exportacoes foram movidos para a parte superior.
+- Acompanhamento dos projetos foi movido para a parte inferior.
+- Titulos e conteudos de Progresso, Horas, Pendencias, Prazo e Situacao foram centralizados.
+
+4. COMPATIBILIDADE
+- Banco de dados existente e atualizado automaticamente com data e tempo das revisoes.
+- Dados e projetos ja cadastrados sao preservados.
+
+
+CONTROLE DE PROJETO - REVISAO 16
+
+1. LISTA DE PROJETOS
+- Ajustado apenas o visual interno da lista da guia Projetos.
+- A tabela recebeu espacamento lateral maior, linhas mais leves e cabecalhos mais limpos.
+- Os grupos por mes ficaram mais sutis, sem divisao pesada entre blocos.
+- O botao de Acoes passou a usar o retangulo compacto com a seta para baixo ja adotada no programa.
+
+2. INDICADORES
+- Ajustado apenas o visual da lista Projetos cadastrados na guia Indicadores.
+- Mantido o funcionamento atual de selecao e consulta do projeto.
+- Aplicado o mesmo refinamento visual da lista de Projetos, preservando dados e logica.
+
+3. PRESERVACAO
+- Nenhum cadastro, indicador, historico ou configuracao foi removido.
+- Alteracao exclusivamente visual nas listas solicitadas.
+
+
+CONTROLE DE PROJETO - REVISAO 17
+
+1. LISTA DE PROJETOS
+- Removido o negrito visual dos valores de Status e Progresso.
+- Conteudos das colunas a partir de Rev. passaram a ficar centralizados com seus respectivos titulos.
+- A coluna Periodo foi substituida por duas colunas: Emissao e Revisao.
+- Emissao mostra a data de conclusao da primeira emissao.
+- Revisao mostra a data da revisao mais recente do projeto; quando nao houver revisao, o campo mostra '-'.
+- A lista ficou um pouco mais compacta, mantendo o visual ajustado anteriormente.
+
+2. INDICADORES
+- A lista Projetos cadastrados ficou um pouco mais compacta.
+- A area visivel da lista foi aumentada levemente para permitir visualizar mais projetos ao mesmo tempo.
+- Icone da guia Indicadores foi trocado por um simbolo mais adequado.
+
+3. PRESERVACAO
+- Registros, indicadores, historicos e configuracoes foram preservados.
+- Alteracoes restritas aos pontos solicitados.
+
+
+CONTROLE DE PROJETO - REVISAO 18
+
+1. SUBIR REVISAO
+- Ao subir revisao pela lista de Projetos, a tela permanece na guia Projetos depois da atualizacao.
+- O fluxo nao redireciona mais automaticamente para Projeto atual.
+
+2. INDICADORES
+- Removida a exibicao de diferenca de peso e de conferencia de soma.
+- O peso apresentado continua reproduzindo diretamente o valor registrado na lista de material.
+- A lista Projetos cadastrados recebeu o mesmo padrao visual da lista da guia Projetos.
+- A selecao do projeto foi mantida de forma discreta, sem a barra lateral diferente.
+
+3. SUGESTOES DO CADASTRO
+- As sugestoes de OS, Cliente e Unidade / area deixaram de usar a caixa nativa escura do navegador.
+- Criado menu de sugestoes no estilo visual do programa, com fundo claro, bordas discretas e navegacao por teclado ou mouse.
+- O cache e os registros de sugestoes existentes foram preservados.
+
+4. PRESERVACAO
+- Demais telas, dados e logicas foram mantidos.
+
+
+CONTROLE DE PROJETO - REVISAO 19
+
+1. LISTAS COM CABECALHO CONGELADO
+- Em Projetos, o cabecalho da lista passou a permanecer fixo enquanto apenas as linhas se movem com a barra de rolagem.
+- Em Indicadores > Projetos cadastrados, o cabecalho tambem permanece fixo com rolagem apenas nas linhas.
+- O comportamento foi ajustado para seguir o padrao de planilha, semelhante ao Excel.
+
+
+CONTROLE DE PROJETO - REVISAO 20
+
+1. PACOTE LIMPO
+- Banco de dados operacional entregue zerado, sem projetos, indicadores, horas ou registros de teste.
+- Historicos de atividades, revisoes, sessoes e projetos excluidos foram removidos.
+- Cache de sugestoes de Cliente, OS e Unidade/area foi limpo.
+- Backups, logs, exportacoes temporarias e caches Python foram removidos do pacote.
+
+2. CONFIGURACOES PRESERVADAS
+- Nome do usuario, projetista, abreviacao, categorias de status e etapas padrao foram mantidos.
+- Estrutura e funcionamento aprovados na Revisao 19 foram preservados sem novas alteracoes funcionais.
+
+
+CONTROLE DE PROJETO - REVISAO 21
+
+1. CADASTRO E CAMINHOS
+- O seletor de pastas de um novo projeto passa a iniciar na pasta-base utilizada no cadastro anterior.
+- Os ultimos caminhos de modelo, documentos e planilha sao lembrados sem preencher automaticamente um caminho de projeto incorreto.
+
+2. PROJETOS CONCLUIDOS E REVISOES
+- Ao salvar um projeto concluido com data de entrega futura, o programa exibe confirmacao central antes de continuar.
+- Projetos concluidos podem registrar a data de cada revisao diretamente no cadastro.
+- Quando a revisao atual e numerica, os campos das revisoes anteriores sao preparados automaticamente.
+
+3. DESCRICAO AUTOMATICA
+- O campo passou a se chamar Descricao.
+- Ao preencher o Titulo, o programa sugere a descricao no formato "Detalhamento de/do/da/dos/das + titulo".
+- A sugestao respeita edicoes manuais e pode ser ativada ou desativada em Configuracoes.
+
+4. EQUIPE E LISTAS
+- Verificador e Aprovador agora preservam nomes anteriores como sugestoes no mesmo estilo de Cliente.
+- As barras de agrupamento por mes em Projetos e Indicadores receberam azul mais escuro e discreto.
+
+5. PRESERVACAO
+- Incorporados os projetos, indicadores, horas, configuracoes e demais registros do executavel enviado.
+
+
+CONTROLE DE PROJETO - REVISAO 28
+
+1. REGISTROS DO PROGRESSO DE DETALHAMENTO
+- Os registros do antigo Controle de Detalhamento, atualmente chamado Progresso de Detalhamento, foram incorporados ao modulo integrado do Controle de Projeto.
+- O historico do projeto IME-MC-1-44344 foi adicionado.
+- O registro compartilhado do projeto IME-MC-1-44343 foi mantido sem duplicacao.
+- O historico ja existente do projeto IME-MC-1-44351 foi preservado.
+- Configuracoes e caminho de reserva do Tekla do programa antigo foram transferidos para o modulo incorporado.
+
+2. PRESERVACAO
+- O banco de dados do Controle de Projeto foi mantido integralmente, incluindo projetos, horas, indicadores, configuracoes, revisoes, sugestoes e historicos.
+- Nenhuma logica funcional ou arquivo de codigo do programa foi alterado.
+
+REVISAO 30
+- Corrigida a atualização contínua do progresso geral após novas análises do Progresso de detalhamento.
+- Eliminado o bloqueio do banco de dados que fazia a consulta automática manter o último percentual exibido.
+- O avanço real da etapa Detalhamento continua sendo recalculado a cada atualização periódica da tela principal.
+- Registros, projetos, horas, indicadores, revisões e configurações existentes foram preservados.
+
+
+CONTROLE DE PROJETO - REVISAO 31
+
+1. ATUALIZACAO DO DETALHAMENTO
+- Corrigida a causa real do percentual permanecer em 66% enquanto o Progresso de detalhamento ja mostrava 96,5%.
+- Quando o nome do modelo ou do desenho mudava, o mesmo numero de projeto podia ficar com mais de um registro interno.
+- O Controle de Projeto usava o primeiro registro encontrado, que ainda continha 79 de 86 conjuntos, e ignorava o registro mais recente com 83 de 86.
+- Agora, quando houver registros repetidos para o mesmo projeto, o registro da analise mais recente e usado.
+
+2. UNIFICACAO DOS REGISTROS
+- O numero do projeto passou a ser a identidade principal do historico do Progresso de detalhamento.
+- Registros duplicados do mesmo projeto sao unidos automaticamente, preservando itens, sessoes, tempos e o resultado da analise mais recente.
+- Alteracoes no nome do modelo, no nome do desenho ou na revisao nao criam mais outro historico para o mesmo projeto.
+
+3. RESULTADO ESPERADO
+- Para 83 de 86 conjuntos, o Progresso de detalhamento informa 96,5%.
+- Com 23% das etapas anteriores e peso de 47% para Detalhamento, o progresso geral passa a 68,35%, exibido como 68%.
+- As proximas analises continuam atualizando o Controle de Projeto automaticamente.
+
+4. PRESERVACAO
+- O pacote nao substitui banco de dados, historico de detalhamento, configuracoes do Tekla, logs ou backups existentes.
+
+R37 - 14/08/2026
+- Corrigida a medição Por componente: vistas nativas DetailView agora contam como evidência de componente detalhado.
+- Preservada a regra do modo Por conjunto: DetailView continua sem iniciar/concluir conjunto e sem alterar o rastreamento de tempo.
+- Vistas-base configuradas (ex.: VISTA FRONTAL, A-A, AC-AC) continuam ignoradas como evidência de conclusão por componente.
+- Confirmado que o total 133 do IME-MC-1-43469 corresponde aos 3 conjuntos: 50 + 57 + 26 componentes.
+
+
+R38 - 14/08/2026
+- Corrigido o total da medição Por componente para considerar a sequência completa de componentes por conjunto.
+- No IME-MC-1-43469, o total passa a 209 componentes: conjunto 1 = 126, conjunto 2 = 57, conjunto 3 = 26.
+- Vistas-base configuradas continuam sem movimentar o avanço por componente.
+
+R39 - 14/08/2026
+- Mantida a medição sequencial por componente: no IME-MC-1-43469, com A-A/VISTA FRONTAL ignoradas, o avanço atual permanece em 98 de 209 quando a maior posição encontrada em vistas válidas é 1.98.
+- Na guia Estatística, o modo Por componente passa a exibir "Conjunto em detalhamento" com avanço do conjunto atual.
+- No modo Por componente, "Conjuntos detalhados por dia" foi substituído por "Componentes detalhados por dia".
+- O histórico diário por componente começa a ser registrado a partir desta revisão, sem atribuir retroativamente ao dia atual componentes que já estavam detalhados antes da instalação.
+- "Tempo por conjunto" foi preservado, pois a medição de tempo continua vinculada ao conjunto.
+- No modo Por conjunto, a estatística anterior de conjuntos detalhados por dia permanece inalterada.
+
+R41 - 14/08/2026
+- Corrigida a medição por componente: o total sequencial (ex.: 1.126 = 126) é mantido, mas o avanço passa a acompanhar a cobertura real das posições encontradas nas vistas válidas. Novos componentes abaixo da maior posição já vista também aumentam o progresso.
+- Eliminada a queda artificial para 38 componentes causada pela contagem apenas de PART_POS distintos na R40.
+- Em Estatística, removida a TAG técnica do conjunto; passa a exibir apenas "Conjunto N".
+- Removido o texto explicativo "Base inicial..." da interface.
+- "Componentes detalhados por dia" passa a registrar o avanço efetivo da métrica e as posições que provocaram o avanço.
+- A lista Faltando em modo por componente não inventa posições intermediárias; mostra o saldo de componentes por conjunto.
+
+R42 - 14/08/2026
+- Trabalhada exclusivamente sobre a versao 27 - CONTROLE DE PROJETO.v.41 enviada pelo usuario, preservando banco, cache e historico existentes.
+- Corrigido o espacamento da lista Detalhados para impedir sobreposicao quando um componente ocupa mais de uma linha ou possui varias folhas associadas.
+- No modo Por componente, a lista Detalhados deixa de usar a TAG tecnica STEL-TEG-... como nome e passa a usar a descricao/nome do conjunto lida do modelo (ex.: COAMING PLATE - 1° EL.).
+- Adicionado rastreamento de tempo por grupo de componentes/corte. Quando varios componentes surgem no mesmo corte/detalhe, o tempo do grupo e dividido igualmente entre eles.
+- Em Estatistica > Tempo por conjunto, o tempo passa a ser calculado pela soma dos tempos dos grupos/componentes do conjunto.
+- Adicionada a secao Tempo por componente, exibindo o tempo individual acumulado de cada subitem.
+- Aproveitados, sem alterar os registros originais, os eventos de componentes ja existentes na v.41 para recuperar os intervalos de tempo que podem ser determinados com seguranca; o periodo anterior a esses eventos nao e inventado.
+
+R43 - 26/08/2026
+- Corrigida a contagem de componentes: a TAG de suporte (UDA FRMW/AVEVA) deixou de ser obrigatoria para um conjunto ser contado. Agora basta o conjunto ter numero na lista de material; objetos sem numeracao continuam descartados. Modelos que nao usam a UDA FRMW (ex.: CUTOUT DE GRADE DE PISO) passam a contar todos os conjuntos numerados. A TAG continua sendo lida e usada como rotulo quando existir, preservando os projetos AVEVA.
+- No IME-MC-1-43470 (CUTOUT DE GRADE DE PISO) o total corrige de 7 para 45 componentes (42 conjuntos numerados, alguns com 2 pecas).
+- Corrigida a lista de excecao no modo Por componente: vistas da lista (ex.: cortes da planta baixa B-B, C-C, D-D, E-E, F-F e VISTA FRONTAL) deixam de marcar o conjunto como "Em detalhamento". Antes, um cutout que so aparecia nos cortes da planta baixa entrava indevidamente em andamento. Agora o conjunto so entra em "Em detalhamento" quando um componente seu surge numa vista real de detalhe (inclusive DetailView), respeitando a lista de excecao. O modo Por conjunto manteve a regra historica.
+- Reforcada a intencao original da lista de excecao: assegurar que um conjunto nao seja considerado iniciado sem o detalhe ter comecado de fato.
+- Recomeco limpo do historico do projeto IME-MC-1-43470, cujo registro havia sido poluido pelas leituras anteriores (known_detailed com os 42 conjuntos e tempo em andamento falso). Backup preservado antes da limpeza. Os demais projetos, incluindo o IME-MC-1-43469 (209 componentes), foram mantidos intactos.

@@ -1,0 +1,17 @@
+{
+  "uda_principal": "FRMW",
+  "uda_reserva": "AwevaFRMW",
+  "manter_a_frente": true,
+  "tekla_root": "",
+  "intervalo_analise_segundos": 15,
+  "modo_progresso": "subitem",
+  "vistas_base_ignoradas": [
+    "VISTA FRONTAL",
+    "A-A",
+    "B-B",
+    "C-C",
+    "E-E",
+    "F-F",
+    "D-D"
+  ]
+}
