@@ -29,11 +29,6 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 // TOPO desta lista com a data de lançamento (AAAA-MM-DD): ela passa a ser a
 // versão oficial e as anteriores migram automaticamente para o menu suspenso
 // "Versões anteriores".
-const APP_VERSIONS = [
-  {version: '2.0', date: '2026-08-26', notes: 'Versão inicial do registro de versões.'}
-];
-
-
 function escapeHtml(value){
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -2050,16 +2045,6 @@ function renderSettings(){
   const view = $('#settings');
   if(!view) return;
   if(!view.dataset.built){
-    const currentVersion = APP_VERSIONS[0] || {version: '—', date: '', notes: ''};
-    const previousVersions = APP_VERSIONS.slice(1);
-    const currentVersionDate = currentVersion.date ? formatDateDashOnly(currentVersion.date) : '—';
-    const versionHistoryOptions = previousVersions.length
-      ? ['<option value="">Selecione uma versão…</option>']
-          .concat(previousVersions.map(item =>
-            `<option value="${escapeHtml(item.version)}">Versão ${escapeHtml(item.version)} · ${escapeHtml(item.date ? formatDateDashOnly(item.date) : '—')}</option>`))
-          .join('')
-      : '<option value="">Nenhuma versão anterior registrada</option>';
-    const versionHistoryDisabled = previousVersions.length ? '' : 'disabled';
     view.innerHTML = `
       <div class="page-head">
         <div><h1 class="page-title">Configurações</h1><div class="page-desc">Preferências de usuário, assinatura e acompanhamento.</div></div>
@@ -2152,18 +2137,6 @@ function renderSettings(){
           <input type="file" id="copiaArquivo" accept=".zip,application/zip" hidden />
         </div>
         <div class="form-section">
-          <div class="form-section-title">Versão</div>
-          <div class="page-desc" style="margin:0 0 10px">Versão atual do programa e data de lançamento. Consulte as versões anteriores no menu suspenso.</div>
-          <div class="form-grid">
-            <div class="form-group"><label>Versão atual</label><div id="versionCurrentNumber" style="font-size:14px;font-weight:600;color:var(--text);margin-top:2px">${escapeHtml(currentVersion.version)}</div></div>
-            <div class="form-group"><label>Lançada em</label><div id="versionCurrentDate" style="font-size:14px;color:var(--text);margin-top:2px">${escapeHtml(currentVersionDate)}</div></div>
-          </div>
-          <div class="form-grid" style="margin-top:14px">
-            <div class="form-group span-2"><label>Versões anteriores</label><select id="versionHistorySelect" ${versionHistoryDisabled}>${versionHistoryOptions}</select></div>
-          </div>
-          <div id="versionHistoryDetail" class="page-desc" style="margin:8px 0 0"></div>
-        </div>
-        <div class="form-section">
           <div class="form-section-title">Manutenção</div>
           <div class="page-desc" style="margin:0 0 10px">Remove todos os projetos, desenhos e históricos, deixando o programa limpo. Faz um backup automático antes. Configurações e etapas padrão são mantidas.</div>
           <button type="button" class="btn danger" id="resetDataButton">Limpar dados</button>
@@ -2189,15 +2162,6 @@ function renderSettings(){
       if(arquivo) importarCopia(arquivo).catch(error => showToast(error.message));
     });
     mostrarResumoDaCopia();
-    const versionSelect = $('#versionHistorySelect', view);
-    versionSelect?.addEventListener('change', () => {
-      const detail = $('#versionHistoryDetail', view);
-      if(!detail) return;
-      const picked = previousVersions.find(item => item.version === versionSelect.value);
-      if(!picked){ detail.textContent = ''; return; }
-      const date = picked.date ? formatDateDashOnly(picked.date) : '—';
-      detail.textContent = `Versão ${picked.version} · lançada em ${date}${picked.notes ? ' · ' + picked.notes : ''}`;
-    });
   }
   const settings = state.data?.settings || {};
   $$('input[name], select[name]', view).forEach(control => {
