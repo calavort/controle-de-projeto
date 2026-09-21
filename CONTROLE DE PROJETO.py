@@ -7,6 +7,7 @@ import sys
 import threading
 import webbrowser
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from waitress import serve
@@ -15,6 +16,29 @@ from app.routes import create_app
 from app.service import ControleService
 
 PROGRESSO_DETALHAMENTO_ARG = "--progresso-detalhamento"
+
+
+def _desviar_saida_para_log() -> None:
+    """Sem console, manda o que seria impresso para um arquivo.
+
+    Aberto pelo pyw.exe (que e como o atalho abre, para nao piscar a janela
+    preta), o Python fica sem stdout: um erro na subida nao apareceria em lugar
+    nenhum e o programa simplesmente "nao abriria". Com o desvio, o motivo fica
+    escrito em logs/controle-projeto.log e da para descobrir o que houve.
+    """
+    if sys.stdout is not None and sys.stderr is not None:
+        return                      # rodando num terminal: a saida ja tem para onde ir
+    try:
+        from app.paths import LOG_DIR
+
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        destino = open(LOG_DIR / "controle-projeto.log", "a", encoding="utf-8", buffering=1)
+    except Exception:
+        return                      # nao poder registrar nunca pode impedir a abertura
+    sys.stdout = destino
+    sys.stderr = destino
+    print("")
+    print(f"===== {datetime.now():%d/%m/%Y %H:%M:%S} - programa iniciado =====")
 
 
 def find_free_port() -> int:
@@ -61,6 +85,7 @@ def _pyinstaller_dependency_hints() -> None:
 
 
 def main() -> None:
+    _desviar_saida_para_log()
     parser = argparse.ArgumentParser(description="Controle de Projetos")
     parser.add_argument("--port", type=int, default=0, help="Porta local. Use 0 para escolher automaticamente.")
     parser.add_argument("--no-browser", action="store_true", help="Não abrir o navegador automaticamente.")

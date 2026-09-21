@@ -1,34 +1,35 @@
 @echo off
 setlocal
+chcp 65001 >nul
 
-set "CONTROLE_BAT=%~dp0Abrir Controle de Projeto.bat"
-set "CONTROLE_ICO=%~dp0assets\Controle de Projeto Logo.ico"
-set "CONTROLE_ATALHO=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Controle de Projeto.lnk"
-set "ATALHO_ANTIGO=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Controle de Projetos Tekla.lnk"
+rem Cria o atalho "Controle de Projeto" no Menu Iniciar apontando DIRETO para o
+rem pyw.exe: assim o programa abre sem console e sem o flash preto. A reserva,
+rem quando nao houver pyw/pythonw, e o "Abrir Controle de Projeto.bat".
 
-if not exist "%CONTROLE_BAT%" (
-    echo Nao foi possivel localizar o inicializador do programa.
+set "APPDIR=%~dp0"
+set "SCRIPT=%APPDIR%CONTROLE DE PROJETO.py"
+set "FALLBACK=%APPDIR%Abrir Controle de Projeto.bat"
+set "ICON=%APPDIR%assets\Controle de Projeto Logo.ico"
+set "STARTMENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs"
+set "LNK=%STARTMENU%\Controle de Projeto.lnk"
+set "ATALHO_ANTIGO=%STARTMENU%\Controle de Projetos Tekla.lnk"
+
+if not exist "%SCRIPT%" (
+    echo Nao encontrei "CONTROLE DE PROJETO.py" nesta pasta.
     pause
     exit /b 1
 )
 
-if not exist "%CONTROLE_ICO%" (
-    echo Nao foi possivel localizar o icone do programa.
-    pause
-    exit /b 1
+if exist "%ATALHO_ANTIGO%" del "%ATALHO_ANTIGO%" >nul 2>&1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$q=[char]34; $py=(Get-Command pyw -ErrorAction SilentlyContinue).Source; if(-not $py){$py=(Get-Command pythonw -ErrorAction SilentlyContinue).Source}; $w=New-Object -ComObject WScript.Shell; $s=$w.CreateShortcut($env:LNK); if($py){$s.TargetPath=$py; $s.Arguments=$q+$env:SCRIPT+$q}else{$s.TargetPath=$env:FALLBACK}; $s.WorkingDirectory=$env:APPDIR; if(Test-Path $env:ICON){$s.IconLocation=$env:ICON}; $s.WindowStyle=7; $s.Description='Controle de Projeto'; $s.Save()"
+
+if exist "%LNK%" (
+    echo.
+    echo Atalho "Controle de Projeto" criado no Menu Iniciar ^(sem console, sem flash^).
+) else (
+    echo.
+    echo Nao foi possivel criar o atalho.
 )
-
-if exist "%ATALHO_ANTIGO%" (
-    del "%ATALHO_ANTIGO%" >nul 2>&1
-)
-
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$atalho = (New-Object -ComObject WScript.Shell).CreateShortcut($env:CONTROLE_ATALHO); $atalho.TargetPath = $env:CONTROLE_BAT; $atalho.WorkingDirectory = Split-Path -Parent $env:CONTROLE_BAT; $atalho.IconLocation = $env:CONTROLE_ICO + ',0'; $atalho.Description = 'Controle de Projeto'; $atalho.Save()"
-
-if errorlevel 1 (
-    echo Nao foi possivel adicionar o atalho ao Menu Iniciar.
-    pause
-    exit /b 1
-)
-
-echo Controle de Projeto adicionado ao Menu Iniciar com sucesso.
+echo.
 pause
