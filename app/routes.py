@@ -7,6 +7,7 @@ from flask import Flask, Response, jsonify, render_template, request, send_file
 
 from .nuvem import (
     ErroDeCopia,
+    ErroDeSincronizacao,
     UpdateError,
     check_release,
     download_release,
@@ -14,6 +15,11 @@ from .nuvem import (
     importar_copia,
     prepare_installer,
     read_version,
+    enviar,
+    estado_publico,
+    gravar_config,
+    olhar_la,
+    receber,
     resumo_do_registro,
     start_installer,
 )
@@ -424,5 +430,61 @@ def create_app(service: ControleService | None = None) -> Flask:
             return fail(exc)
         except Exception as exc:
             return fail(exc, 500)
+
+    # ----------------------------------------------------------- sincronizacao
+
+    @app.get("/api/sincronizacao/estado")
+    def sincronizacao_estado():
+        try:
+            return ok(estado_publico())
+        except Exception as exc:
+            return fail(exc)
+
+    @app.put("/api/sincronizacao/config")
+    def sincronizacao_config():
+        dados = request.get_json(force=True) or {}
+        novo: dict[str, Any] = {
+            "ligada": bool(dados.get("ligada")),
+            "repositorio": str(dados.get("repositorio") or "").strip(),
+            "maquina": str(dados.get("maquina") or "").strip(),
+        }
+        # Token vazio nao apaga o que ja esta gravado: a tela nunca o recebe de
+        # volta, entao salvar o formulario sem redigita-lo nao pode limpa-lo.
+        token = str(dados.get("token") or "").strip()
+        if token:
+            novo["token"] = token
+        try:
+            gravar_config(novo)
+            return ok(estado_publico())
+        except Exception as exc:
+            return fail(exc)
+
+    @app.get("/api/sincronizacao/olhar")
+    def sincronizacao_olhar():
+        try:
+            return ok(olhar_la())
+        except ErroDeSincronizacao as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 502)
+
+    @app.post("/api/sincronizacao/enviar")
+    def sincronizacao_enviar():
+        try:
+            return ok(enviar())
+        except ErroDeSincronizacao as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 502)
+
+    @app.post("/api/sincronizacao/receber")
+    def sincronizacao_receber():
+        dados = request.get_json(silent=True) or {}
+        try:
+            return ok(receber(svc.db, bool(dados.get("forcar"))))
+        except ErroDeSincronizacao as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 502)
 
     return app

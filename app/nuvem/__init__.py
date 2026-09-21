@@ -18,6 +18,14 @@ from .atualizador import (
     start_installer,
 )
 from .copia import ErroDeCopia, exportar_copia, importar_copia, resumo_do_registro
+from .sincronizacao import (
+    ErroDeSincronizacao,
+    enviar,
+    estado_publico,
+    gravar_config,
+    olhar_la,
+    receber,
+)
 
 __all__ = [
     "ErroDeCopia",

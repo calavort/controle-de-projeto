@@ -1871,6 +1871,96 @@ async function instalarAtualizacao(){
   }
 }
 
+/* ---- Sincronização --------------------------------------------------------
+   Mão única, de propósito: os projetos nascem no trabalho e em casa só se
+   acompanha. Por isso o registro viaja inteiro, e o envio mais recente vence -
+   mesclar 23 tabelas com IDs contados por maquina criaria projeto em dobro. */
+
+function formatarMomento(texto){
+  if(!texto) return 'nunca';
+  const data = new Date(texto);
+  return Number.isNaN(data.getTime()) ? texto : data.toLocaleString('pt-BR');
+}
+
+async function mostrarEstadoDaSincronizacao(){
+  const alvo = $('#syncEstado');
+  if(!alvo) return;
+  try{
+    const retorno = await api('/api/sincronizacao/estado');
+    const dados = retorno.data ?? retorno;
+    const ligada = $('#syncLigada'); if(ligada) ligada.checked = !!dados.ligada;
+    const repo = $('#syncRepositorio'); if(repo && !repo.value) repo.value = dados.repositorio || '';
+    const maquina = $('#syncMaquina'); if(maquina && !maquina.value) maquina.value = dados.maquina || '';
+    const token = $('#syncToken');
+    if(token) token.placeholder = dados.tem_token ? 'token guardado — deixe em branco para manter' : 'cole o token aqui';
+    alvo.textContent = dados.ligada
+      ? `Ligada. Último envio: ${formatarMomento(dados.ultimo_envio)} · última descida: ${formatarMomento(dados.ultima_descida)}.`
+      : 'Desligada. O registro fica só nesta máquina.';
+  }catch{
+    alvo.textContent = 'Não foi possível ler o estado da sincronização.';
+  }
+}
+
+async function salvarSincronizacao(){
+  const corpo = {
+    ligada: !!$('#syncLigada')?.checked,
+    repositorio: $('#syncRepositorio')?.value?.trim() || '',
+    maquina: $('#syncMaquina')?.value?.trim() || '',
+    token: $('#syncToken')?.value?.trim() || ''
+  };
+  await api('/api/sincronizacao/config', {method: 'PUT', body: corpo});
+  const token = $('#syncToken'); if(token) token.value = '';
+  showToast('Sincronização salva.');
+  await mostrarEstadoDaSincronizacao();
+}
+
+async function enviarRegistro(){
+  const botao = $('#syncEnviarButton');
+  const alvo = $('#syncEstado');
+  if(botao) botao.disabled = true;
+  if(alvo) alvo.textContent = 'Enviando o registro…';
+  try{
+    const retorno = await api('/api/sincronizacao/enviar', {method: 'POST'});
+    const dados = retorno.data ?? retorno;
+    showToast(`Registro enviado (${descreverRegistro(dados.registro)}).`);
+    await mostrarEstadoDaSincronizacao();
+  }catch(erro){
+    if(alvo) alvo.textContent = `Não foi possível enviar: ${erro.message}`;
+    throw erro;
+  }finally{
+    if(botao) botao.disabled = false;
+  }
+}
+
+async function receberRegistro(){
+  const confirmado = await confirmAction({
+    title: 'Trazer o registro para esta máquina',
+    message: 'O registro desta máquina será substituído pelo que está no repositório. Uma cópia do registro de agora é guardada antes, em data/backups.',
+    confirmText: 'Trazer'
+  });
+  if(!confirmado) return;
+
+  const botao = $('#syncReceberButton');
+  const alvo = $('#syncEstado');
+  if(botao) botao.disabled = true;
+  if(alvo) alvo.textContent = 'Trazendo o registro…';
+  try{
+    const retorno = await api('/api/sincronizacao/receber', {method: 'POST', body: {forcar: true}});
+    const dados = retorno.data ?? retorno;
+    if(dados.novidade === false){
+      if(alvo) alvo.textContent = 'O registro daqui já é o mesmo que está no repositório.';
+      return;
+    }
+    showToast(`Registro trazido de ${dados.de || 'outra máquina'}.`);
+    setTimeout(() => window.location.reload(), 1200);
+  }catch(erro){
+    if(alvo) alvo.textContent = `Não foi possível trazer: ${erro.message}`;
+    throw erro;
+  }finally{
+    if(botao) botao.disabled = false;
+  }
+}
+
 /* ---- Cópia de segurança ---------------------------------------------------
    O registro deste programa é um banco SQLite, e não arquivos soltos: a cópia
    sai e volta inteira, num .zip só. Antes de restaurar, o programa guarda
@@ -2017,17 +2107,35 @@ function renderSettings(){
       </form>
       <div class="form-shell" style="margin-top:16px">
         <div class="form-section">
-          <div class="form-section-title">Manutenção</div>
-          <div class="page-desc" style="margin:0 0 10px">Remove todos os projetos, desenhos e históricos, deixando o programa limpo. Faz um backup automático antes. Configurações e etapas padrão são mantidas.</div>
-          <button type="button" class="btn danger" id="resetDataButton">Limpar dados</button>
-        </div>
-        <div class="form-section">
           <div class="form-section-title">Atualizar o programa</div>
           <div class="page-desc" style="margin:0 0 10px">Mantenha o programa em dia. A atualização troca apenas os arquivos do programa — o registro dos projetos, os backups e as estatísticas não são tocados.</div>
           <div class="page-desc" id="atualizacaoEstado" style="margin:0 0 10px">Conferindo a versão…</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="btn" id="procurarAtualizacaoButton">Procurar atualização</button>
             <button type="button" class="btn primary" id="instalarAtualizacaoButton" hidden>Instalar</button>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Sincronização</div>
+          <div class="page-desc" style="margin:0 0 10px">Leva o registro do trabalho para casa por um repositório <strong>privado</strong> do GitHub. Vai o registro inteiro, num pacote só — <strong>o envio mais recente é o que vale</strong>. Serve para lançar os projetos no trabalho e acompanhar em casa; não serve para lançar nos dois lugares.</div>
+          <label class="settings-check-row">
+            <input type="checkbox" id="syncLigada" />
+            <span class="settings-check-copy">
+              <strong>Manter o registro sincronizado</strong>
+              <span>Sem isso marcado, nada sobe nem desce.</span>
+            </span>
+          </label>
+          <div class="form-grid" style="margin-top:12px">
+            <div class="form-group span-2"><label>Repositório privado no GitHub</label><input id="syncRepositorio" placeholder="calavort/controle-sync" /></div>
+            <div class="form-group span-2"><label>Token de acesso</label><input id="syncToken" type="password" placeholder="cole o token aqui" autocomplete="off" /></div>
+            <div class="form-group span-2"><label>Nome desta máquina</label><input id="syncMaquina" placeholder="Trabalho" /></div>
+          </div>
+          <div class="page-desc" style="margin:8px 0 10px">O token precisa da permissão <strong>Contents: Read and write</strong> nesse repositório. Ele fica guardado em data/ nesta máquina e nunca volta para a tela.</div>
+          <div class="page-desc" id="syncEstado" style="margin:0 0 10px">Conferindo…</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn primary" id="syncSalvarButton">Salvar</button>
+            <button type="button" class="btn" id="syncEnviarButton">Enviar daqui</button>
+            <button type="button" class="btn" id="syncReceberButton">Trazer para cá</button>
           </div>
         </div>
         <div class="form-section">
@@ -2052,6 +2160,11 @@ function renderSettings(){
           </div>
           <div id="versionHistoryDetail" class="page-desc" style="margin:8px 0 0"></div>
         </div>
+        <div class="form-section">
+          <div class="form-section-title">Manutenção</div>
+          <div class="page-desc" style="margin:0 0 10px">Remove todos os projetos, desenhos e históricos, deixando o programa limpo. Faz um backup automático antes. Configurações e etapas padrão são mantidas.</div>
+          <button type="button" class="btn danger" id="resetDataButton">Limpar dados</button>
+        </div>
       </div>
     `;
     view.dataset.built = '1';
@@ -2061,6 +2174,10 @@ function renderSettings(){
     $('#procurarAtualizacaoButton', view)?.addEventListener('click', () => procurarAtualizacao().catch(error => showToast(error.message)));
     $('#instalarAtualizacaoButton', view)?.addEventListener('click', () => instalarAtualizacao().catch(error => showToast(error.message)));
     mostrarEstadoDaAtualizacao();
+    $('#syncSalvarButton', view)?.addEventListener('click', () => salvarSincronizacao().catch(error => showToast(error.message)));
+    $('#syncEnviarButton', view)?.addEventListener('click', () => enviarRegistro().catch(error => showToast(error.message)));
+    $('#syncReceberButton', view)?.addEventListener('click', () => receberRegistro().catch(error => showToast(error.message)));
+    mostrarEstadoDaSincronizacao();
     $('#exportarCopiaButton', view)?.addEventListener('click', () => exportarCopia().catch(error => showToast(error.message)));
     $('#importarCopiaButton', view)?.addEventListener('click', () => $('#copiaArquivo', view)?.click());
     $('#copiaArquivo', view)?.addEventListener('change', event => {

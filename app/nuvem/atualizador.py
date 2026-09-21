@@ -53,8 +53,8 @@ _SEGMENT = re.compile(r"[A-Za-z0-9_][A-Za-z0-9 ._-]*")
 # sido instalado quando ainda nao existe registro de uma instalacao anterior.
 APP_FILES = (
     "CONTROLE DE PROJETO.py", "versao.json", "requirements.txt", "config.json",
-    "Abrir Controle de Projeto.bat", "Adicionar ao Menu Iniciar.bat",
-    "Instalar dependencias.bat",
+    "Controle_de_Projeto.pyw", "criar_atalho_menu_iniciar.pyw",
+    "Abrir Controle de Projeto.bat", "Instalar dependencias.bat",
     "app/__init__.py",
     "app/database.py",
     "app/indicators.py",
@@ -69,6 +69,7 @@ APP_FILES = (
     "app/nuvem/__init__.py",
     "app/nuvem/atualizador.py",
     "app/nuvem/copia.py",
+    "app/nuvem/sincronizacao.py",
     "app/progresso_detalhamento/Progresso de detalhamento.py",
     "app/progresso_detalhamento/interface.html",
     "app/progresso_detalhamento/requirements.txt",

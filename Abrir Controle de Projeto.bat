@@ -1,14 +1,9 @@
 @echo off
-REM Abre o Controle de Projeto SEM a janela preta (console). O programa sobe o
-REM servidor local e abre no navegador sozinho.
+REM RESERVA. O jeito certo de abrir e o "Controle_de_Projeto.pyw" - o Windows
+REM abre .pyw com o pythonw.exe, que nao tem console nenhum, nem para piscar.
 REM
-REM Este .bat e a RESERVA: o atalho do Menu Iniciar aponta direto para o pyw.exe,
-REM que nao pisca nem esta janela. Para ver os erros, rode num terminal:
-REM     python "CONTROLE DE PROJETO.py"
+REM Este .bat existe so para nao quebrar atalhos antigos que apontavam para ele.
+REM Rode uma vez o "criar_atalho_menu_iniciar.pyw" e o atalho do Menu Iniciar
+REM passa a abrir direto pelo pythonw, sem flash.
 cd /d "%~dp0"
-where pyw >nul 2>nul
-if %errorlevel%==0 (
-  start "" pyw "%~dp0CONTROLE DE PROJETO.py"
-) else (
-  start "" pythonw "%~dp0CONTROLE DE PROJETO.py"
-)
+start "" "%~dp0Controle_de_Projeto.pyw"
