@@ -5,7 +5,18 @@ from typing import Any
 
 from flask import Flask, Response, jsonify, render_template, request, send_file
 
-from .nuvem import ErroDeCopia, exportar_copia, importar_copia, resumo_do_registro
+from .nuvem import (
+    ErroDeCopia,
+    UpdateError,
+    check_release,
+    download_release,
+    exportar_copia,
+    importar_copia,
+    prepare_installer,
+    read_version,
+    resumo_do_registro,
+    start_installer,
+)
 from .paths import BASE_DIR
 from .service import ControleService
 
@@ -352,6 +363,55 @@ def create_app(service: ControleService | None = None) -> Flask:
             mimetype="application/zip",
             headers={"Content-Disposition": f'attachment; filename="{nome}"'},
         )
+
+    # ------------------------------------------------- atualizar o programa
+    # A release pendente fica aqui entre o "verificar" e o "instalar": instalar
+    # sem ter verificado antes nao acontece, e a versao instalada e sempre a que
+    # o usuario viu na tela.
+    atualizacao_pendente: dict[str, Any] = {}
+
+    @app.get("/api/atualizacao/estado")
+    def atualizacao_estado():
+        try:
+            atual = read_version(BASE_DIR)
+            return ok({
+                "versao": atual.get("version", ""),
+                "repositorio": atual.get("repository", ""),
+                "pendente": getattr(atualizacao_pendente.get("release"), "version", ""),
+            })
+        except Exception as exc:
+            return fail(exc)
+
+    @app.post("/api/atualizacao/verificar")
+    def atualizacao_verificar():
+        try:
+            atual = read_version(BASE_DIR)
+            release = check_release(atual)
+        except UpdateError as exc:
+            return fail(exc, 502)
+        except Exception as exc:
+            return fail(exc, 502)
+        atualizacao_pendente.clear()
+        if release is None:
+            return ok({"disponivel": False, "versao": atual.get("version", "")})
+        atualizacao_pendente["release"] = release
+        return ok({"disponivel": True, "versao": release.version, "atual": atual.get("version", "")})
+
+    @app.post("/api/atualizacao/instalar")
+    def atualizacao_instalar():
+        release = atualizacao_pendente.get("release")
+        if release is None:
+            return fail(ValueError("Procure uma versão nova antes de instalar."))
+        try:
+            pacote = download_release(release, BASE_DIR)
+            plano = prepare_installer(pacote, BASE_DIR, release)
+            start_installer(plano)
+        except UpdateError as exc:
+            return fail(exc, 502)
+        except OSError as exc:
+            return fail(exc, 500)
+        atualizacao_pendente.clear()
+        return ok({"instalando": True, "versao": release.version})
 
     @app.post("/api/copia/importar")
     def copia_importar():

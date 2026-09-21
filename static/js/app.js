@@ -1807,6 +1807,70 @@ function renderIndicators(){
   }
 }
 
+/* ---- Atualizar o programa -------------------------------------------------
+   A troca em si e feita pelo instalador do Python, o mesmo do Notas de
+   Engenharia: ele fecha o programa, substitui os arquivos e reabre. Daqui saem
+   so as duas perguntas - "ha versao nova?" e "pode instalar?". */
+
+async function mostrarEstadoDaAtualizacao(){
+  const alvo = $('#atualizacaoEstado');
+  if(!alvo) return;
+  try{
+    const retorno = await api('/api/atualizacao/estado');
+    const dados = retorno.data ?? retorno;
+    const repositorio = dados.repositorio ? ` · ${dados.repositorio}` : '';
+    alvo.textContent = `Versão instalada ${dados.versao || '—'}${repositorio}. Procure por uma versão nova quando quiser.`;
+  }catch{
+    alvo.textContent = 'Não foi possível ler a versão instalada.';
+  }
+}
+
+async function procurarAtualizacao(){
+  const botao = $('#procurarAtualizacaoButton');
+  const instalar = $('#instalarAtualizacaoButton');
+  const alvo = $('#atualizacaoEstado');
+  if(botao) botao.disabled = true;
+  if(alvo) alvo.textContent = 'Procurando…';
+  try{
+    const retorno = await api('/api/atualizacao/verificar', {method: 'POST'});
+    const dados = retorno.data ?? retorno;
+    if(dados.disponivel){
+      if(alvo) alvo.textContent = `Versão ${dados.versao} disponível (instalada: ${dados.atual}).`;
+      if(instalar) instalar.hidden = false;
+    }else{
+      if(alvo) alvo.textContent = `O programa já está na versão mais recente (${dados.versao || '—'}).`;
+      if(instalar) instalar.hidden = true;
+    }
+  }catch(erro){
+    // Sem release publicada o GitHub responde 404: nao e defeito do programa.
+    if(alvo) alvo.textContent = `Não foi possível procurar agora: ${erro.message}`;
+    if(instalar) instalar.hidden = true;
+  }finally{
+    if(botao) botao.disabled = false;
+  }
+}
+
+async function instalarAtualizacao(){
+  const confirmado = await confirmAction({
+    title: 'Instalar atualização',
+    message: 'O programa será fechado, atualizado e aberto de novo. O registro dos projetos não é alterado.',
+    confirmText: 'Instalar'
+  });
+  if(!confirmado) return;
+  const botao = $('#instalarAtualizacaoButton');
+  if(botao) botao.disabled = true;
+  const alvo = $('#atualizacaoEstado');
+  if(alvo) alvo.textContent = 'Baixando e instalando… o programa vai fechar e abrir sozinho.';
+  try{
+    await api('/api/atualizacao/instalar', {method: 'POST'});
+    showToast('Atualização em andamento. O programa vai reabrir.');
+  }catch(erro){
+    if(alvo) alvo.textContent = `Não foi possível instalar: ${erro.message}`;
+    if(botao) botao.disabled = false;
+    throw erro;
+  }
+}
+
 /* ---- Cópia de segurança ---------------------------------------------------
    O registro deste programa é um banco SQLite, e não arquivos soltos: a cópia
    sai e volta inteira, num .zip só. Antes de restaurar, o programa guarda
@@ -1958,6 +2022,15 @@ function renderSettings(){
           <button type="button" class="btn danger" id="resetDataButton">Limpar dados</button>
         </div>
         <div class="form-section">
+          <div class="form-section-title">Atualizar o programa</div>
+          <div class="page-desc" style="margin:0 0 10px">Mantenha o programa em dia. A atualização troca apenas os arquivos do programa — o registro dos projetos, os backups e as estatísticas não são tocados.</div>
+          <div class="page-desc" id="atualizacaoEstado" style="margin:0 0 10px">Conferindo a versão…</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn" id="procurarAtualizacaoButton">Procurar atualização</button>
+            <button type="button" class="btn primary" id="instalarAtualizacaoButton" hidden>Instalar</button>
+          </div>
+        </div>
+        <div class="form-section">
           <div class="form-section-title">Cópia de segurança</div>
           <div class="page-desc" style="margin:0 0 10px">Guarda o registro inteiro num arquivo — o banco de projetos e as estatísticas do Progresso de detalhamento. Serve para levar o registro para outra máquina ou para voltar atrás depois de um engano.</div>
           <div class="page-desc" id="copiaResumo" style="margin:0 0 10px">Conferindo o registro…</div>
@@ -1985,6 +2058,9 @@ function renderSettings(){
     $('#settingsForm', view).addEventListener('submit', saveSettings);
     $('#editTemplateButton', view)?.addEventListener('click', () => editStageTemplate().catch(error => showToast(error.message)));
     $('#resetDataButton', view)?.addEventListener('click', () => resetOperationalData().catch(error => showToast(error.message)));
+    $('#procurarAtualizacaoButton', view)?.addEventListener('click', () => procurarAtualizacao().catch(error => showToast(error.message)));
+    $('#instalarAtualizacaoButton', view)?.addEventListener('click', () => instalarAtualizacao().catch(error => showToast(error.message)));
+    mostrarEstadoDaAtualizacao();
     $('#exportarCopiaButton', view)?.addEventListener('click', () => exportarCopia().catch(error => showToast(error.message)));
     $('#importarCopiaButton', view)?.addEventListener('click', () => $('#copiaArquivo', view)?.click());
     $('#copiaArquivo', view)?.addEventListener('change', event => {
