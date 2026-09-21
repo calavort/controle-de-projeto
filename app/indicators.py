@@ -7,7 +7,11 @@ from typing import Any
 
 
 DRAWING_CODE_RE = re.compile(r"\bIME-MC-\d+-\d+\b", re.IGNORECASE)
-REVISION_FILE_RE = re.compile(r"\bRev\.?\s*([A-Z0-9]+)\b", re.IGNORECASE)
+# O \b antes de "Rev" exigia que o caractere anterior NAO fosse de palavra — e o
+# sublinhado é. Com isso "IME-MC-1-43469_Rev.0.pdf", que é como os desenhos
+# chegam aqui, ficava sem revisão. A condição certa é outra: "Rev" não pode ser
+# o fim de uma palavra maior (PREVISAO), e quem garante isso é a letra.
+REVISION_FILE_RE = re.compile(r"(?<![A-Za-z])Rev\.?\s*([A-Z0-9]+)\b", re.IGNORECASE)
 TOTAL_WEIGHT_RE = re.compile(r"PESO\s+TOTAL\s*=\s*([\d.,]+)\s*Kg", re.IGNORECASE)
 ASSEMBLY_RE = re.compile(
     r"(?<![\d.])(\d{1,4})\s+(\d+)\s+"
@@ -20,10 +24,19 @@ ASSEMBLY_RE = re.compile(
 # exemplo: "1  1  PLATAFORMA - 01  -  1621.56  1621.56". O material
 # desses itens principais aparece como um traço. O padrão abaixo é usado
 # somente quando a tabela tradicional com TAGs não foi encontrada.
+#
+# A descrição aceita qualquer coisa que não atravesse a linha. A versão
+# anterior listava os caracteres permitidos e exigia que o nome TERMINASSE em
+# letra ou número — e por causa disso um desenho inteiro deixava de ser lido só
+# porque o conjunto se chamava "COAMING PLATE - 1° EL.", com o ponto no fim.
+# Quem delimita a linha não é a descrição: é o material do conjunto, que vem
+# sempre como um traço isolado, seguido dos dois pesos. É neles que o padrão
+# se ancora.
 NAMED_ASSEMBLY_RE = re.compile(
-    r"(?<![\d.])(\d{1,4})\s+(\d+)\s+"
-    r"([A-ZÀ-ÖØ-Þ0-9][A-ZÀ-ÖØ-Þ0-9 ._()/\"'°º-]*?[A-ZÀ-ÖØ-Þ0-9])"
-    r"\s+-\s+([\d.,]+)\s+([\d.,]+)",
+    r"(?<![\d.])(\d{1,4})\s+(\d+)\s+"      # item e quantidade
+    r"([A-ZÀ-ÖØ-Þ0-9][^\n]*?)"                # descrição do conjunto
+    r"\s+-\s+"                                # material: um traço isolado
+    r"([\d.,]+)\s+([\d.,]+)",                # peso unitário e peso total
     re.IGNORECASE,
 )
 
