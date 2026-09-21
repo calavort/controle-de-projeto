@@ -12,3 +12,12 @@ logs/
 *.log
 
 app/progresso_detalhamento/estatisticas_detalhamento.json
+
+# Pacotes gerados pelo publicador de releases
+dist/
+
+# Sobra da instalacao de uma atualizacao, apagada na abertura seguinte
+*.old
+
+# Estado do atualizador (download em andamento, plano de instalacao)
+.atualizacoes/
