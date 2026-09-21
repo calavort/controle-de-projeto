@@ -160,6 +160,9 @@ class ControleService:
             "user_nickname",
             "projectist_name",
             "projectist_abbreviation",
+            # Pasta onde ficam os detalhamentos, uma subpasta por desenho. E dela
+            # que a importacao de PDF parte, em vez da pasta do modelo Tekla.
+            "indicators_root",
         ):
             if key in data:
                 self.db.set_setting(key, str(data[key] or "").strip())
@@ -254,7 +257,42 @@ class ControleService:
             return ""
         return text[-limit:].strip()
 
-    def choose_path(self, folder: bool = False, initial_dir: str = "") -> dict[str, Any]:
+    def indicators_start_dir(self, project_code: str = "") -> str:
+        """Onde a janela de arquivos deve abrir para importar o PDF de um projeto.
+
+        Os detalhamentos ficam numa pasta geral com uma subpasta por desenho
+        (".../DETALHAMENTO/GATO DO MATO/IME-MC-1-43469"). Sem essa configuracao a
+        janela abria na pasta do MODELO do Tekla, que e outro lugar - e a cada
+        importacao era preciso navegar o disco inteiro.
+
+        A subpasta e procurada pelo codigo do projeto, aceitando nome exato ou
+        com complemento depois ("IME-MC-1-43469 - Coaming Plate"). Nao achando,
+        abre na pasta geral mesmo, que ja e muito mais perto do que antes.
+        """
+        raiz = str(self.db.setting("indicators_root") or "").strip()
+        if not raiz:
+            return ""
+        base = Path(raiz)
+        if not base.is_dir():
+            return ""
+
+        codigo = str(project_code or "").strip()
+        if not codigo:
+            return str(base)
+
+        exata = base / codigo
+        if exata.is_dir():
+            return str(exata)
+        try:
+            for filho in sorted(base.iterdir()):
+                if filho.is_dir() and filho.name.upper().startswith(codigo.upper()):
+                    return str(filho)
+        except OSError:
+            pass
+        return str(base)
+
+    def choose_path(self, folder: bool = False, initial_dir: str = "",
+                    project_code: str = "") -> dict[str, Any]:
         if os.name != "nt":
             raise ValueError("Seleção de caminho está disponível apenas no Windows.")
         try:
@@ -263,9 +301,14 @@ class ControleService:
         except Exception as exc:
             raise ValueError(f"Não foi possível abrir o seletor de arquivos: {exc}") from exc
 
-        initial_path = Path(initial_dir) if initial_dir else Path.home()
+        # A pasta dos detalhamentos vem antes do que a tela pediu: e a que o
+        # usuario configurou de proposito para esta busca.
+        preferida = self.indicators_start_dir(project_code) if project_code else ""
+        initial_path = Path(preferida or initial_dir or Path.home())
         if initial_path.is_file():
             initial_path = initial_path.parent
+        if not initial_path.exists():
+            initial_path = Path(initial_dir) if initial_dir else Path.home()
         if not initial_path.exists():
             initial_path = Path.home()
 

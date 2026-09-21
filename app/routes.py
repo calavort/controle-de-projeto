@@ -328,7 +328,11 @@ def create_app(service: ControleService | None = None) -> Flask:
     def choose_path():
         try:
             data = request.get_json(force=True) or {}
-            return ok(svc.choose_path(bool(data.get("folder")), str(data.get("initial_dir") or "")))
+            return ok(svc.choose_path(
+                bool(data.get("folder")),
+                str(data.get("initial_dir") or ""),
+                str(data.get("project_code") or ""),
+            ))
         except Exception as exc:
             return fail(exc)
 

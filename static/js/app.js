@@ -430,8 +430,13 @@ function closeFileDialog(){
   state.fileDialogProjectId = null;
 }
 
-async function choosePath(folder = false, initialDir = ''){
-  const result = await api('/api/choose-path', {method: 'POST', body: {folder, initial_dir: initialDir || ''}});
+async function choosePath(folder = false, initialDir = '', projectCode = ''){
+  // Com o codigo do projeto, o programa abre a janela ja dentro da subpasta
+  // daquele desenho, dentro da pasta geral configurada em Configuracoes.
+  const result = await api('/api/choose-path', {
+    method: 'POST',
+    body: {folder, initial_dir: initialDir || '', project_code: projectCode || ''}
+  });
   return result?.path ? result : null;
 }
 
@@ -2081,6 +2086,14 @@ function renderSettings(){
           </div>
         </div>
         <div class="form-section">
+          <div class="form-section-title">Indicadores</div>
+          <div class="page-desc" style="margin:0 0 10px">Pasta onde ficam os detalhamentos, com uma subpasta por desenho. Ao importar o PDF de um projeto, a janela de arquivos abre direto na subpasta daquele desenho — em vez da pasta do modelo do Tekla.</div>
+          <div class="form-grid">
+            <div class="form-group span-2"><label>Pasta geral dos detalhamentos</label><input name="indicators_root" data-location-kind="indicators_root" placeholder="C:\\Documentos\\DETALHAMENTO\\GATO DO MATO" /></div>
+            <div class="form-group"><label>&nbsp;</label><button type="button" class="btn" data-location-target="indicators_root" style="width:100%">Escolher pasta</button></div>
+          </div>
+        </div>
+        <div class="form-section">
           <div class="form-section-title">Etapas padrão por programa</div>
           <div class="page-desc" style="margin:0 0 10px">Defina o modelo de etapas de cada programa e nível. Vale como padrão dos próximos projetos (não altera projetos já criados).</div>
           <div class="form-grid">
@@ -2145,6 +2158,10 @@ function renderSettings(){
     `;
     view.dataset.built = '1';
     $('#settingsForm', view).addEventListener('submit', saveSettings);
+    $('[data-location-target="indicators_root"]', view)?.addEventListener('click', event => {
+      event.preventDefault();
+      choosePathForButton(event.currentTarget, true).catch(error => showToast(error.message));
+    });
     $('#editTemplateButton', view)?.addEventListener('click', () => editStageTemplate().catch(error => showToast(error.message)));
     $('#resetDataButton', view)?.addEventListener('click', () => resetOperationalData().catch(error => showToast(error.message)));
     $('#procurarAtualizacaoButton', view)?.addEventListener('click', () => procurarAtualizacao().catch(error => showToast(error.message)));
@@ -3050,7 +3067,11 @@ async function saveIndicatorEditor(){
 async function importIndicatorsPdf(){
   const project = selectedIndicatorProject();
   if(!project?.id){ showToast('Selecione um projeto.'); return; }
-  const selected = await choosePath(false, project.document_folder || project.model_path || '');
+  const selected = await choosePath(
+    false,
+    project.document_folder || project.model_path || '',
+    project.code || ''
+  );
   if(!selected?.path) return;
   showToast('Lendo a lista de material do PDF...');
   const preview = await api(`/api/projects/${project.id}/indicators/import-pdf`, {

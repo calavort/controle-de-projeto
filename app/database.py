@@ -3787,6 +3787,7 @@ class ControleDatabase:
                         "projectist_abbreviation": self.setting("projectist_abbreviation", "JEC"),
                         "report_output_format": self.setting("report_output_format", "html"),
                         "auto_description_enabled": self.setting("auto_description_enabled", "1"),
+                        "indicators_root": self.setting("indicators_root", ""),
                         "last_model_path": self.setting("last_model_path", ""),
                         "last_model_parent": self.setting("last_model_parent", ""),
                         "last_document_folder": self.setting("last_document_folder", ""),
