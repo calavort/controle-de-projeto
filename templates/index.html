@@ -203,6 +203,9 @@
   .active-meta{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .active-actions{display:flex;gap:8px}
 
+  /* .btn define display, e display de classe vence o [hidden] que o navegador
+     aplica sozinho - sem esta linha, botao escondido continua aparecendo. */
+  .btn[hidden]{display:none}
   .btn{
     height:32px;
     border-radius:var(--radius);

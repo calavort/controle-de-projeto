@@ -394,12 +394,17 @@ def create_app(service: ControleService | None = None) -> Flask:
             atual = read_version(BASE_DIR)
             release = check_release(atual)
         except UpdateError as exc:
+            # Nao ter release ainda nao e falha: e so nao haver o que baixar.
+            # Devolver isso como erro pintava a tela de vermelho a toa.
+            if "nao publicado" in str(exc).lower() or "não publicado" in str(exc).lower():
+                return ok({"disponivel": False, "publicado": False,
+                           "versao": read_version(BASE_DIR).get("version", "")})
             return fail(exc, 502)
         except Exception as exc:
             return fail(exc, 502)
         atualizacao_pendente.clear()
         if release is None:
-            return ok({"disponivel": False, "versao": atual.get("version", "")})
+            return ok({"disponivel": False, "publicado": True, "versao": atual.get("version", "")})
         atualizacao_pendente["release"] = release
         return ok({"disponivel": True, "versao": release.version, "atual": atual.get("version", "")})
 

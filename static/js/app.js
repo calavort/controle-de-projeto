@@ -1837,6 +1837,9 @@ async function procurarAtualizacao(){
     if(dados.disponivel){
       if(alvo) alvo.textContent = `Versão ${dados.versao} disponível (instalada: ${dados.atual}).`;
       if(instalar) instalar.hidden = false;
+    }else if(dados.publicado === false){
+      if(alvo) alvo.textContent = 'Nenhuma versão publicada ainda. Assim que a primeira release existir, ela aparece aqui.';
+      if(instalar) instalar.hidden = true;
     }else{
       if(alvo) alvo.textContent = `O programa já está na versão mais recente (${dados.versao || '—'}).`;
       if(instalar) instalar.hidden = true;
