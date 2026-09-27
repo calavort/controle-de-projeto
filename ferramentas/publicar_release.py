@@ -123,13 +123,14 @@ def publish_package(root: Path, archive: Path, create_repository=False, notes=""
         if exc.code != 404:
             raise
     release = api(token, base + "/releases", "POST", {
-        "tag_name": "v" + info["version"], "name": "Notas de Engenharia " + info["version"],
+        "tag_name": "v" + info["version"], "name": "Controle de Projeto " + info["version"],
         "draft": True, "prerelease": False, "target_commitish": repo["default_branch"],
-        "body": "Pacote portatil do Notas de Engenharia para Windows (Python 3.11+ e Flask).\n\n"
-                "Na primeira instalacao, extraia o ZIP e execute Instalar Bibliotecas.bat. "
-                "Abra por iniciar_notas_de_engenharia.bat. As proximas versoes sao instaladas "
-                "pela guia Atualizacao, dentro do programa.\n\n"
-                "Notas, revisoes e backups ficam na pasta dados/ e nao fazem parte deste pacote."
+        "body": "Pacote portatil do Controle de Projeto para Windows (Python 3.11+ e Flask).\n\n"
+                "Na primeira instalacao, extraia o ZIP e execute Instalar dependencias.bat. "
+                "Abra por Controle_de_Projeto.pyw. As proximas versoes sao instaladas "
+                "em Configuracoes, na secao Atualizar o programa.\n\n"
+                "Projetos, estatisticas, configuracoes de sincronizacao e backups ficam em data/ "
+                "e nao fazem parte deste pacote."
                 + ("\n\n" + notes if notes else ""),
     })
     upload = release["upload_url"].split("{")[0]

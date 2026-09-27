@@ -77,10 +77,32 @@ def estado_publico() -> dict[str, Any]:
         "repositorio": str(config.get("repositorio") or ""),
         "tem_token": bool(config.get("token")),
         "maquina": str(config.get("maquina") or platform.node()),
+        "ambiente": str(config.get("ambiente") or "").strip().upper(),
         "ultimo_envio": str(config.get("ultimo_envio") or ""),
         "ultima_descida": str(config.get("ultima_descida") or ""),
         "registro": resumo_do_registro(),
     }
+
+
+def sincronizar_na_abertura(database: Any) -> dict[str, Any]:
+    """Executa uma unica direcao conforme o ambiente desta instalacao.
+
+    HOME apenas recebe o registro mais recente. EXTERNO apenas envia o registro
+    local. A separacao impede que a abertura da maquina de casa sobrescreva o
+    registro oficial por engano.
+    """
+    config = ler_config()
+    if not config.get("ligada"):
+        return {"executada": False, "motivo": "desligada"}
+
+    ambiente = str(config.get("ambiente") or "").strip().upper()
+    if ambiente == "HOME":
+        resultado = receber(database, False)
+        return {"executada": True, "ambiente": ambiente, "acao": "receber", **resultado}
+    if ambiente == "EXTERNO":
+        resultado = enviar()
+        return {"executada": True, "ambiente": ambiente, "acao": "enviar", **resultado}
+    return {"executada": False, "motivo": "ambiente_nao_definido"}
 
 
 # ------------------------------------------------------------------- transporte

@@ -25,6 +25,7 @@ from .sincronizacao import (
     gravar_config,
     olhar_la,
     receber,
+    sincronizar_na_abertura,
 )
 
 __all__ = [
@@ -37,5 +38,6 @@ __all__ = [
     "prepare_installer",
     "read_version",
     "resumo_do_registro",
+    "sincronizar_na_abertura",
     "start_installer",
 ]

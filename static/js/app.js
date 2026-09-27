@@ -1893,11 +1893,12 @@ async function mostrarEstadoDaSincronizacao(){
     const dados = retorno.data ?? retorno;
     const ligada = $('#syncLigada'); if(ligada) ligada.checked = !!dados.ligada;
     const repo = $('#syncRepositorio'); if(repo && !repo.value) repo.value = dados.repositorio || '';
-    const maquina = $('#syncMaquina'); if(maquina && !maquina.value) maquina.value = dados.maquina || '';
+    const ambiente = $('#syncAmbiente'); if(ambiente) ambiente.value = dados.ambiente || 'HOME';
     const token = $('#syncToken');
     if(token) token.placeholder = dados.tem_token ? 'token guardado — deixe em branco para manter' : 'cole o token aqui';
+    const acaoInicial = dados.ambiente === 'EXTERNO' ? 'envia ao iniciar' : 'traz ao iniciar';
     alvo.textContent = dados.ligada
-      ? `Ligada. Último envio: ${formatarMomento(dados.ultimo_envio)} · última descida: ${formatarMomento(dados.ultima_descida)}.`
+      ? `Ligada em ${dados.ambiente || 'ambiente não definido'} (${acaoInicial}). Último envio: ${formatarMomento(dados.ultimo_envio)} · última descida: ${formatarMomento(dados.ultima_descida)}.`
       : 'Desligada. O registro fica só nesta máquina.';
   }catch{
     alvo.textContent = 'Não foi possível ler o estado da sincronização.';
@@ -1908,7 +1909,7 @@ async function salvarSincronizacao(){
   const corpo = {
     ligada: !!$('#syncLigada')?.checked,
     repositorio: $('#syncRepositorio')?.value?.trim() || '',
-    maquina: $('#syncMaquina')?.value?.trim() || '',
+    ambiente: $('#syncAmbiente')?.value || 'HOME',
     token: $('#syncToken')?.value?.trim() || ''
   };
   await api('/api/sincronizacao/config', {method: 'PUT', body: corpo});
@@ -1917,47 +1918,44 @@ async function salvarSincronizacao(){
   await mostrarEstadoDaSincronizacao();
 }
 
-async function enviarRegistro(){
-  const botao = $('#syncEnviarButton');
-  const alvo = $('#syncEstado');
-  if(botao) botao.disabled = true;
-  if(alvo) alvo.textContent = 'Enviando o registro…';
+async function sincronizarNaAbertura(){
   try{
-    const retorno = await api('/api/sincronizacao/enviar', {method: 'POST'});
-    const dados = retorno.data ?? retorno;
-    showToast(`Registro enviado (${descreverRegistro(dados.registro)}).`);
-    await mostrarEstadoDaSincronizacao();
+    const retorno = await api('/api/sincronizacao/inicial', {method: 'POST'});
+    const dados = retorno?.data ?? retorno;
+    if(!dados?.executada || dados.repetida) return;
+    if(dados.acao === 'receber' && dados.novidade === false) return;
+    if(dados.acao === 'receber') showToast('Registro atualizado automaticamente ao iniciar.');
+    if(dados.acao === 'enviar') showToast('Registro enviado automaticamente ao iniciar.');
   }catch(erro){
-    if(alvo) alvo.textContent = `Não foi possível enviar: ${erro.message}`;
-    throw erro;
-  }finally{
-    if(botao) botao.disabled = false;
+    showToast(`Sincronização automática não concluída: ${erro.message}`);
   }
 }
 
-async function receberRegistro(){
-  const confirmado = await confirmAction({
-    title: 'Trazer o registro para esta máquina',
-    message: 'O registro desta máquina será substituído pelo que está no repositório. Uma cópia do registro de agora é guardada antes, em data/backups.',
-    confirmText: 'Trazer'
-  });
-  if(!confirmado) return;
-
-  const botao = $('#syncReceberButton');
+async function atualizarRegistro(){
+  const botao = $('#syncAtualizarButton');
   const alvo = $('#syncEstado');
   if(botao) botao.disabled = true;
-  if(alvo) alvo.textContent = 'Trazendo o registro…';
+  if(alvo) alvo.textContent = 'Atualizando o registro…';
   try{
-    const retorno = await api('/api/sincronizacao/receber', {method: 'POST', body: {forcar: true}});
+    const retorno = await api('/api/sincronizacao/atualizar', {method: 'POST'});
     const dados = retorno.data ?? retorno;
-    if(dados.novidade === false){
-      if(alvo) alvo.textContent = 'O registro daqui já é o mesmo que está no repositório.';
+    if(!dados.executada){
+      throw new Error('Ative a sincronização e defina o ambiente antes de atualizar.');
+    }
+    if(dados.acao === 'enviar'){
+      showToast(`Registro enviado (${descreverRegistro(dados.registro)}).`);
+      await mostrarEstadoDaSincronizacao();
       return;
     }
-    showToast(`Registro trazido de ${dados.de || 'outra máquina'}.`);
+    if(dados.novidade === false){
+      showToast('O registro já está atualizado.');
+      await mostrarEstadoDaSincronizacao();
+      return;
+    }
+    showToast('Registro atualizado a partir do repositório.');
     setTimeout(() => window.location.reload(), 1200);
   }catch(erro){
-    if(alvo) alvo.textContent = `Não foi possível trazer: ${erro.message}`;
+    if(alvo) alvo.textContent = `Não foi possível atualizar: ${erro.message}`;
     throw erro;
   }finally{
     if(botao) botao.disabled = false;
@@ -2118,7 +2116,7 @@ function renderSettings(){
         </div>
         <div class="form-section">
           <div class="form-section-title">Sincronização</div>
-          <div class="page-desc" style="margin:0 0 10px">Leva o registro do trabalho para casa por um repositório <strong>privado</strong> do GitHub. Vai o registro inteiro, num pacote só — <strong>o envio mais recente é o que vale</strong>. Serve para lançar os projetos no trabalho e acompanhar em casa; não serve para lançar nos dois lugares.</div>
+          <div class="page-desc" style="margin:0 0 10px">Leva o registro por um repositório <strong>privado</strong> do GitHub. Ao iniciar, <strong>HOME traz</strong> o registro e <strong>EXTERNO envia</strong>. Vai o registro inteiro, num pacote só — <strong>o envio mais recente é o que vale</strong>.</div>
           <label class="settings-check-row">
             <input type="checkbox" id="syncLigada" />
             <span class="settings-check-copy">
@@ -2127,16 +2125,14 @@ function renderSettings(){
             </span>
           </label>
           <div class="form-grid" style="margin-top:12px">
+            <div class="form-group span-2"><label>Definir ambiente</label><select id="syncAmbiente"><option value="HOME">HOME — trazer automaticamente ao iniciar</option><option value="EXTERNO">EXTERNO — enviar automaticamente ao iniciar</option></select></div>
             <div class="form-group span-2"><label>Repositório privado no GitHub</label><input id="syncRepositorio" placeholder="calavort/controle-sync" /></div>
             <div class="form-group span-2"><label>Token de acesso</label><input id="syncToken" type="password" placeholder="cole o token aqui" autocomplete="off" /></div>
-            <div class="form-group span-2"><label>Nome desta máquina</label><input id="syncMaquina" placeholder="Trabalho" /></div>
           </div>
-          <div class="page-desc" style="margin:8px 0 10px">O token precisa da permissão <strong>Contents: Read and write</strong> nesse repositório. Ele fica guardado em data/ nesta máquina e nunca volta para a tela.</div>
-          <div class="page-desc" id="syncEstado" style="margin:0 0 10px">Conferindo…</div>
+          <div class="page-desc" id="syncEstado" style="margin:8px 0 10px">Conferindo…</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button type="button" class="btn primary" id="syncSalvarButton">Salvar</button>
-            <button type="button" class="btn" id="syncEnviarButton">Enviar daqui</button>
-            <button type="button" class="btn" id="syncReceberButton">Trazer para cá</button>
+            <button type="button" class="btn" id="syncAtualizarButton">Atualizar</button>
           </div>
         </div>
         <div class="form-section">
@@ -2168,8 +2164,7 @@ function renderSettings(){
     $('#instalarAtualizacaoButton', view)?.addEventListener('click', () => instalarAtualizacao().catch(error => showToast(error.message)));
     mostrarEstadoDaAtualizacao();
     $('#syncSalvarButton', view)?.addEventListener('click', () => salvarSincronizacao().catch(error => showToast(error.message)));
-    $('#syncEnviarButton', view)?.addEventListener('click', () => enviarRegistro().catch(error => showToast(error.message)));
-    $('#syncReceberButton', view)?.addEventListener('click', () => receberRegistro().catch(error => showToast(error.message)));
+    $('#syncAtualizarButton', view)?.addEventListener('click', () => atualizarRegistro().catch(error => showToast(error.message)));
     mostrarEstadoDaSincronizacao();
     $('#exportarCopiaButton', view)?.addEventListener('click', () => exportarCopia().catch(error => showToast(error.message)));
     $('#importarCopiaButton', view)?.addEventListener('click', () => $('#copiaArquivo', view)?.click());
@@ -3380,7 +3375,8 @@ async function addFile(){
 
 setupReferenceNavigation();
 setupFunctionalEvents();
-loadState()
+sincronizarNaAbertura()
+  .then(() => loadState())
   .then(() => {
     applyProjectFormDefaults();
     startAutoRefresh();

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from .nuvem import (
     olhar_la,
     receber,
     resumo_do_registro,
+    sincronizar_na_abertura,
     start_installer,
 )
 from .paths import BASE_DIR
@@ -35,6 +37,9 @@ def create_app(service: ControleService | None = None) -> Flask:
         static_folder=str(BASE_DIR / "static"),
     )
     app.config["controle_service"] = svc
+    sincronizacao_inicial_lock = threading.Lock()
+    sincronizacao_inicial_concluida = False
+    sincronizacao_inicial_resultado: dict[str, Any] | None = None
 
     def ok(data: Any = None, **extra: Any):
         payload = {"ok": True}
@@ -452,10 +457,16 @@ def create_app(service: ControleService | None = None) -> Flask:
     @app.put("/api/sincronizacao/config")
     def sincronizacao_config():
         dados = request.get_json(force=True) or {}
+        ambiente = str(dados.get("ambiente") or "").strip().upper()
+        if ambiente not in {"HOME", "EXTERNO"}:
+            return fail(ValueError("Escolha o ambiente HOME ou EXTERNO."))
         novo: dict[str, Any] = {
             "ligada": bool(dados.get("ligada")),
             "repositorio": str(dados.get("repositorio") or "").strip(),
-            "maquina": str(dados.get("maquina") or "").strip(),
+            # O ambiente ja identifica esta instalacao no registro remoto; um
+            # segundo nome configuravel seria apenas informacao duplicada.
+            "maquina": ambiente,
+            "ambiente": ambiente,
         }
         # Token vazio nao apaga o que ja esta gravado: a tela nunca o recebe de
         # volta, entao salvar o formulario sem redigita-lo nao pode limpa-lo.
@@ -472,6 +483,34 @@ def create_app(service: ControleService | None = None) -> Flask:
     def sincronizacao_olhar():
         try:
             return ok(olhar_la())
+        except ErroDeSincronizacao as exc:
+            return fail(exc)
+        except Exception as exc:
+            return fail(exc, 502)
+
+    @app.post("/api/sincronizacao/inicial")
+    def sincronizacao_inicial():
+        nonlocal sincronizacao_inicial_concluida, sincronizacao_inicial_resultado
+        with sincronizacao_inicial_lock:
+            if sincronizacao_inicial_concluida:
+                return ok({**(sincronizacao_inicial_resultado or {}), "repetida": True})
+            # Mesmo em caso de falha, uma abertura faz apenas uma tentativa. Os
+            # botoes manuais continuam disponiveis, e a proxima abertura tenta
+            # novamente sem prender a inicializacao num laco de rede.
+            sincronizacao_inicial_concluida = True
+            try:
+                sincronizacao_inicial_resultado = sincronizar_na_abertura(svc.db)
+                return ok(sincronizacao_inicial_resultado)
+            except ErroDeSincronizacao as exc:
+                return fail(exc)
+            except Exception as exc:
+                return fail(exc, 502)
+
+    @app.post("/api/sincronizacao/atualizar")
+    def sincronizacao_atualizar():
+        """Atualiza na direcao definida: HOME recebe, EXTERNO envia."""
+        try:
+            return ok(sincronizar_na_abertura(svc.db))
         except ErroDeSincronizacao as exc:
             return fail(exc)
         except Exception as exc:
