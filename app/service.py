@@ -212,7 +212,7 @@ class ControleService:
         log_path = LOG_DIR / "progresso_detalhamento.log"
         creationflags = 0
         if os.name == "nt":
-            creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
         command = (
             [sys.executable, PROGRESSO_DETALHAMENTO_ARG]
             if running_from_bundle
