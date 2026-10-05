@@ -296,6 +296,8 @@
   @media (prefers-reduced-motion:reduce){.progress > span::after{animation:none;display:none}}
   .project-status{display:flex;align-items:center;gap:8px;font-size:12px}
   .status-dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+  .project-started{font-size:11px;color:var(--muted);margin-top:9px}
+  .project-started + .project-deadline{margin-top:3px}
   .project-deadline{font-size:11px;color:var(--muted);margin-top:9px}
 
   /* OFFICE COMPLETED CARDS */
@@ -1117,6 +1119,7 @@
             <div class="progress-label"><span>Progresso geral</span><strong>68%</strong></div>
             <div class="progress"><span></span></div>
             <div class="project-status"><span class="status-dot"></span><strong>Em detalhamento</strong></div>
+            <div class="project-started">Iniciado: 01-07-2026</div>
             <div class="project-deadline">Prazo previsto: 26/07/2026</div>
           </div>
         </div>

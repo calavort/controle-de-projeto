@@ -1066,6 +1066,17 @@ function formatDateDashOnly(value){
   return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
 }
 
+// Data de início cadastrada; sem ela, a primeira etapa que começou.
+function projectStartDate(project){
+  const registered = parseProjectDate(project?.start_date);
+  if(registered) return project.start_date;
+  const firsts = (project?.stages || [])
+    .map(stage => ({text: stage.started_at, date: parseProjectDate(stage.started_at)}))
+    .filter(item => item.date)
+    .sort((a, b) => a.date - b.date);
+  return firsts.length ? firsts[0].text : '';
+}
+
 function projectCompletionDate(project){
   const completed = projectDisplayStatus(project) === 'Concluído' || progressValue(project) >= 100;
   if(!completed) return null;
@@ -1366,6 +1377,11 @@ function renderOverview(){
   if(progressBar) progressBar.style.width = `${progress}%`;
   const status = $('#overview .project-status strong');
   if(status) status.textContent = progress >= 100 ? 'Concluído' : (project?.current_stage?.name || 'Aguardando projeto');
+  const started = $('#overview .project-started');
+  if(started){
+    const startDate = projectStartDate(project);
+    started.textContent = startDate ? `Iniciado: ${formatDateDashOnly(startDate)}` : 'Início não definido';
+  }
   const deadline = $('#overview .project-deadline');
   if(deadline){
     const dateLabel = completed ? 'Emissão' : (overdue ? 'Prazo vencido' : 'Prazo previsto');

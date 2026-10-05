@@ -1,3 +1,6 @@
+VERSÃO 7.0.6 - 05/10/2026
+- Visão geral: o card do projeto ativo ganhou a linha "Iniciado: dd-mm-aaaa", acima de "Prazo previsto". A data vem do campo Data de início do cadastro; se estiver em branco, usa o dia em que a primeira etapa começou; sem as duas, mostra "Início não definido".
+
 VERSÃO 7.0.5 - 05/10/2026
 - Corrigido o Progresso de detalhamento em projetos cujos itens não têm posição decimal (ex.: IME-MC-1-44361, montagem de escadas, itens 9, 10, 11). O painel só reconhecia marcas decimais (9.1) e mostrava 1 de 17 com o desenho todo detalhado; nesses projetos o item aparece apenas no balão com o número do item.
 - Para o item cujas peças não têm decimal no modelo, o balão inteiro do próprio item passa a valer como marca. Para item com decimais nada mudou: só a marca decimal vale e o balão inteiro continua ignorado.
