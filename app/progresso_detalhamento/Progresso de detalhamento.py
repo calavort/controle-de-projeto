@@ -7,6 +7,8 @@ Objetivo:
 - Identificar os conjuntos esperados no modelo Tekla.
 - Considerar um item iniciado somente quando o TEXTO VISÍVEL de uma marca contiver um subitem decimal, como 60.1.
 - Ignorar balões inteiros, como 10, 25 ou 33, mesmo quando estejam associados a peças 10.1, 25.1 ou 33.1.
+- Exceção: item cujas peças NÃO têm posição decimal no modelo (ex.: escadas identificadas só por 9, 10, 11) só
+  pode ser reconhecido pelo balão inteiro do próprio item; para esses itens, e só para eles, o balão vale.
 - Percorrer as vistas do multidesenho, ignorando vistas do tipo DetailView como evidência de início.
 - Exibir os itens principais, TAGs e folhas temporárias correspondentes.
 - Permitir concluir manualmente o registro de tempo do grupo em andamento.
@@ -89,6 +91,12 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     # para localizar as pecas; elas nao comprovam que o componente foi detalhado.
     "vistas_base_ignoradas": ["VISTA FRONTAL"],
 }
+
+# Item que só tem a posição inteira (escada 9, 10, 11): o balão do item é a
+# única marca possível. Uma vista com balões de pelo menos 8 itens E de 60% ou
+# mais dos itens desse tipo é visão geral (3D da lista de material), não detalhe.
+INTEGER_OVERVIEW_MIN_ITEMS = 8
+INTEGER_OVERVIEW_FRACTION = 0.6
 
 COMMON_TAG_PROPERTIES = (
     "FRMW",
@@ -1066,6 +1074,29 @@ class TeklaBridge:
                 return normalize_tag(value)
         return ""
 
+    # Quantas peças de um conjunto são olhadas atrás de posição decimal. Conjunto
+    # com decimais responde na primeira peça secundária; só o conjunto SEM decimais
+    # (escada, suporte de peça única) percorre tudo, e este teto evita varrer um
+    # conjunto enorme à toa.
+    DECIMAL_PARTS_LIMIT = 60
+
+    def assembly_decimal_parents(self, assembly: Any) -> Set[int]:
+        """Item pai das peças do conjunto que têm posição decimal (``9.1``), se houver.
+
+        Devolve vazio quando nenhuma peça tem decimal: o conjunto só tem a posição
+        inteira, e o único jeito de vê-lo no desenho é o balão com o número do item.
+        """
+        for index, part in enumerate(self.assembly_parts(assembly)):
+            if index >= self.DECIMAL_PARTS_LIMIT:
+                break
+            try:
+                position = self.subitem_from_model_object(part)
+            except Exception:
+                position = None
+            if position:
+                return {int(position[0])}
+        return set()
+
     def expected_items(
         self, primary_uda: str, fallback_uda: str
     ) -> Tuple[Dict[int, str], Dict[str, int]]:
@@ -1108,6 +1139,7 @@ class TeklaBridge:
 
         properties_start = time.perf_counter()
         items: Dict[int, str] = {}
+        decimal_parents: Set[int] = set()
         duplicate_numbers = 0
         no_tag = 0
         no_number = 0
@@ -1126,6 +1158,8 @@ class TeklaBridge:
             tag = self.support_tag_for_assembly(assembly, primary_uda, fallback_uda)
             if not tag:
                 no_tag += 1
+            if number not in decimal_parents:
+                decimal_parents.update(self.assembly_decimal_parents(assembly))
             if number not in items:
                 items[number] = tag
             elif tag:
@@ -1143,6 +1177,9 @@ class TeklaBridge:
             "without_tag": no_tag,
             "without_number": no_number,
             "duplicate_numbers": duplicate_numbers,
+            # Itens com peças decimais (9.1) e os que só têm a posição inteira (9).
+            "decimal_parents": numeric_sort(decimal_parents & set(items)),
+            "integer_items": numeric_sort(set(items) - decimal_parents),
             "source": source,
             "scan_seconds": round(scan_seconds, 3),
             "properties_seconds": round(properties_seconds, 3),
@@ -1372,10 +1409,35 @@ class TeklaBridge:
 
         return "\n".join(fragments)
 
-    def subitems_from_mark(self, mark: Any) -> Set[Tuple[int, int]]:
-        """Extrai posições decimais exclusivamente do texto visível da marca."""
+    @staticmethod
+    def mark_is_linked(mark: Any) -> bool:
+        """A marca está presa a algum objeto do desenho (a peça que ela aponta)?
+
+        Balão de item é marca associativa: aponta para uma peça. Rótulo de eixo,
+        texto solto e afins não apontam para nada. Se a API não deixar perguntar,
+        não bloqueia: devolve True para não perder um item por causa da consulta.
+        """
+        try:
+            method = getattr(mark, "GetRelatedObjects", None)
+            if not callable(method):
+                return True
+            related = method()
+        except Exception:
+            return True
+        if related is None:
+            return True
+        for use_enumerator in (True, False):
+            try:
+                enum = related.GetEnumerator() if use_enumerator else related
+                return bool(enum.MoveNext())
+            except Exception:
+                continue
+        return True
+
+    @staticmethod
+    def subitems_from_text(text: str) -> Set[Tuple[int, int]]:
+        """Extrai posições decimais (60.1) de um texto de marca já lido."""
         found: Set[Tuple[int, int]] = set()
-        text = self.mark_visible_text(mark)
         if not text:
             return found
         for match in re.finditer(r"(?<!\d)(\d+)\s*[.,]\s*(\d+)(?!\d)", text):
@@ -1388,9 +1450,17 @@ class TeklaBridge:
                 found.add((parent, child))
         return found
 
+    def subitems_from_mark(self, mark: Any) -> Set[Tuple[int, int]]:
+        """Extrai posições decimais exclusivamente do texto visível da marca."""
+        return self.subitems_from_text(self.mark_visible_text(mark))
+
     def integer_items_from_mark(self, mark: Any) -> Set[int]:
+        return self.integer_items_from_text(self.mark_visible_text(mark))
+
+    @staticmethod
+    def integer_items_from_text(text: str) -> Set[int]:
+        """Números de item que são o texto INTEIRO de uma linha da marca (balão ``9``)."""
         found: Set[int] = set()
-        text = self.mark_visible_text(mark)
         if not text:
             return found
         for line in re.split(r"[\r\n;]+", text):
@@ -1867,6 +1937,7 @@ class TeklaBridge:
         view_index: int,
         expected_map: Dict[int, str],
         page_number: Optional[int] = None,
+        integer_only_items: Optional[Set[int]] = None,
     ) -> Dict[str, Any]:
         view_name = self.view_display_name(view, view_index)
         required: Dict[Tuple[int, int], Dict[str, Any]] = {}
@@ -1919,7 +1990,8 @@ class TeklaBridge:
             for subitem, entry in sorted(required.items(), key=lambda item: item[0])
             if subitem not in dimensioned
         ]
-        required_parents = {parent for parent, _child in required}
+        # Item que só tem a posição inteira (escada 9) não tem subitem para cobrar.
+        required_parents = {parent for parent, _child in required} | set(integer_only_items or ())
         cut_missing = [
             {
                 "number": number,
@@ -2251,6 +2323,7 @@ class TeklaBridge:
         identity: Optional[Dict[str, str]] = None,
         ignored_component_views: Optional[Iterable[str]] = None,
         progress_mode: str = "conjunto",
+        integer_items: Optional[Iterable[int]] = None,
     ) -> Tuple[
         Set[int],
         Dict[int, Set[str]],
@@ -2274,6 +2347,13 @@ class TeklaBridge:
 
         Vistas-base configuradas pelo usuário (por exemplo VISTA FRONTAL ou A-A)
         nunca comprovam conclusão no modo por componente.
+
+        ``integer_items`` são os itens cujas peças não têm posição decimal no
+        modelo (escadas identificadas só por 9, 10, 11). Para eles, e só no modo
+        por conjunto, o balão inteiro do próprio item vale como marca: não há
+        ``9.1`` para ser lido. Uma vista que mostra balões de quase todos os
+        itens de uma vez (o 3D geral da folha da lista de material) é contexto e
+        não conta. Itens com decimais continuam só pela regra decimal.
         """
         start = time.perf_counter()
         sheet = drawing.GetSheet()
@@ -2282,6 +2362,19 @@ class TeklaBridge:
 
         expected = set(expected_map)
         subitem_mode = clean_text(progress_mode).casefold() == "subitem"
+        integer_candidates: Set[int] = (
+            {int(value) for value in integer_items if int(value) in expected}
+            if integer_items and not subitem_mode
+            else set()
+        )
+        # Vista que mostra balões de (quase) todos os itens é visão geral.
+        overview_limit = max(
+            INTEGER_OVERVIEW_MIN_ITEMS,
+            math.ceil(len(integer_candidates) * INTEGER_OVERVIEW_FRACTION),
+        )
+        integer_marked: Set[int] = set()
+        integer_overview_views = 0
+        integer_unlinked_marks = 0
         marked: Set[int] = set()
         item_views: Dict[int, Set[str]] = {}
         item_pages: Dict[int, Set[int]] = {}
@@ -2356,16 +2449,28 @@ class TeklaBridge:
             if page_number is not None:
                 views_with_page += 1
 
+            view_integers: Set[int] = set()
             for obj in self.all_objects(view):
                 type_name = object_type_name(obj)
 
                 if type_name in {"Mark", "MarkSet"}:
                     marks_count += 1
-                    subitems = self.subitems_from_mark(obj)
+                    mark_text = self.mark_visible_text(obj)
+                    subitems = self.subitems_from_text(mark_text)
                     if subitems:
                         marks_with_decimal += 1
                     else:
                         marks_without_decimal += 1
+                    if integer_candidates:
+                        # Balão só com o número do item (9). Só vale para item sem
+                        # decimais no modelo, e só se a marca estiver presa a um
+                        # objeto do desenho (rótulo de eixo "4" não é marca de item).
+                        hits = self.integer_items_from_text(mark_text) & integer_candidates
+                        if hits:
+                            if self.mark_is_linked(obj):
+                                view_integers.update(hits)
+                            else:
+                                integer_unlinked_marks += 1
                     for parent, child in subitems:
                         position = (parent, child)
                         if ignore_for_component:
@@ -2405,7 +2510,22 @@ class TeklaBridge:
                 if type_name == "Part":
                     drawing_parts_count += 1
 
+            if view_integers:
+                if len(view_integers) >= overview_limit:
+                    integer_overview_views += 1
+                else:
+                    for number in view_integers:
+                        integer_marked.add(number)
+                        marked.add(number)
+                        item_views.setdefault(number, set()).add(view_key)
+                        if page_number is not None:
+                            item_pages.setdefault(number, set()).add(page_number)
+
         stats = {
+            "integer_candidates": numeric_sort(integer_candidates),
+            "integer_evidence_items": numeric_sort(integer_marked),
+            "integer_overview_views": integer_overview_views,
+            "integer_unlinked_marks": integer_unlinked_marks,
             "views": views_count,
             "analyzed_views": analyzed_views_count,
             "ignored_detail_views": ignored_detail_views_count,
@@ -2458,6 +2578,7 @@ class TeklaBridge:
         expected_map: Dict[int, str],
         focus_pages: Optional[Iterable[int]] = None,
         identity: Optional[Dict[str, str]] = None,
+        integer_only_items: Optional[Set[int]] = None,
     ) -> Dict[str, Any]:
         start = time.perf_counter()
         sheet = drawing.GetSheet()
@@ -2528,7 +2649,7 @@ class TeklaBridge:
                 continue
 
             cota_view = self.analyze_view_dimensions(
-                view, view_index, expected_map, page_number
+                view, view_index, expected_map, page_number, integer_only_items
             )
             cota_views.append(cota_view)
             cota_missing.extend(cota_view.get("missing", []))
@@ -2572,9 +2693,9 @@ class TeklaBridge:
         drawing = self.require_active_drawing(clean_text(config.get("tekla_root")))
         identity = self.model_identity(drawing)
         expected_source = "context"
+        primary = clean_text(config.get("uda_principal")) or "FRMW"
+        fallback = clean_text(config.get("uda_reserva")) or "AwevaFRMW"
         if not expected_map:
-            primary = clean_text(config.get("uda_principal")) or "FRMW"
-            fallback = clean_text(config.get("uda_reserva")) or "AwevaFRMW"
             expected_map, model_stats = self.expected_items_cached(
                 identity, primary, fallback
             )
@@ -2582,7 +2703,18 @@ class TeklaBridge:
         if not expected_map:
             raise RuntimeError("Nenhum conjunto numerado foi encontrado para conferir pendencias.")
 
-        summary = self.scan_cota_drawing(drawing, expected_map, focus_pages, identity)
+        # So le o que a analise do progresso ja guardou: nao varre o modelo aqui.
+        cached_model = self._expected_cache.get(
+            self.expected_cache_key(identity, primary, fallback)
+        )
+        integer_only_items = {
+            int(value)
+            for value in ((cached_model[1].get("integer_items") if cached_model else None) or [])
+        }
+
+        summary = self.scan_cota_drawing(
+            drawing, expected_map, focus_pages, identity, integer_only_items
+        )
         summary["expected_source"] = expected_source
         summary["expected_items"] = len(expected_map)
         return {
@@ -2620,6 +2752,14 @@ class TeklaBridge:
         if mode not in {"conjunto", "subitem"}:
             mode = "conjunto"
 
+        # Itens cujas peças não têm posição decimal (escadas 9, 10, 11): só o balão
+        # com o número do item pode mostrá-los no desenho.
+        integer_only = {
+            int(value)
+            for value in model_stats.get("integer_items", []) or []
+            if int(value) in expected
+        }
+
         self._log("Lendo marcas e vistas do multidesenho...")
         drawing_start = time.perf_counter()
         marked, item_views, item_pages, detected_subitems, subitem_pages, subitem_views, drawing_stats = self.scan_drawing(
@@ -2628,8 +2768,19 @@ class TeklaBridge:
             identity,
             config.get("vistas_base_ignoradas", []),
             mode,
+            integer_only if mode == "conjunto" else None,
         )
         drawing_seconds = time.perf_counter() - drawing_start
+        if mode == "conjunto" and integer_only:
+            self._log(
+                f"Itens sem posição decimal no modelo: {len(integer_only)} "
+                f"({len(drawing_stats.get('integer_evidence_items', []))} reconhecidos pelo balão do item)."
+            )
+            if drawing_stats.get("integer_overview_views"):
+                self._log(
+                    f"{drawing_stats['integer_overview_views']} vista(s) geral(is) com balões de quase todos "
+                    "os itens ficaram de fora."
+                )
         detailed = marked & expected
         missing = expected - detailed
         expected_subitems: Dict[Tuple[int, int], str] = {}
@@ -2828,6 +2979,11 @@ class TeklaBridge:
             "tracking_detailed_numbers": numeric_sort(detailed),
             "tracking_missing_numbers": numeric_sort(missing),
             "marked_items": numeric_sort(marked & expected),
+            # Itens só com posição inteira e os que o balão do item já mostrou.
+            "integer_only_numbers": numeric_sort(integer_only),
+            "integer_evidence_numbers": numeric_sort(
+                set(drawing_stats.get("integer_evidence_items", []) or []) & expected
+            ),
             "progress": round((metric_detailed / metric_total) * 100.0, 1) if metric_total else 0.0,
             "analyzed_at": now_time(),
             "model_stats": model_stats,
@@ -4759,6 +4915,30 @@ class DetailHistory:
         known = self._discard_false_detail_items(
             project, detailed, ignored_detail_items
         )
+
+        # Primeira leitura deste projeto com a regra do balão inteiro (itens sem
+        # decimais, como as escadas): o que ela já encontra pronto no desenho é
+        # histórico, sem sessão nem tempo inventado, como numa primeira observação.
+        # Daí em diante, item novo entra em "Em detalhamento" como sempre.
+        integer_numbers = {
+            int(value)
+            for value in result.get("integer_evidence_numbers", []) or []
+            if str(value).isdigit() and int(value) > 0
+        }
+        if integer_numbers and not project.get("integer_evidence_baseline_at"):
+            project["integer_evidence_baseline_at"] = timestamp
+            if not first_observation:
+                baseline = (integer_numbers & detailed) - known
+                for number in numeric_sort(baseline):
+                    record = self._item_record(
+                        project, number, tags.get(number, ""), historical=True
+                    )
+                    if number in pages_by_item:
+                        record["pages"] = pages_by_item[number]
+                known = known | baseline
+                previous_scan = previous_scan | baseline
+                project["known_detailed"] = numeric_sort(known)
+
         item_views_raw = result.get("item_views", {}) or {}
         item_views: Dict[int, Set[str]] = {}
         for number, views in item_views_raw.items():

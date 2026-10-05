@@ -1,3 +1,11 @@
+VERSÃO 7.0.5 - 05/10/2026
+- Corrigido o Progresso de detalhamento em projetos cujos itens não têm posição decimal (ex.: IME-MC-1-44361, montagem de escadas, itens 9, 10, 11). O painel só reconhecia marcas decimais (9.1) e mostrava 1 de 17 com o desenho todo detalhado; nesses projetos o item aparece apenas no balão com o número do item.
+- Para o item cujas peças não têm decimal no modelo, o balão inteiro do próprio item passa a valer como marca. Para item com decimais nada mudou: só a marca decimal vale e o balão inteiro continua ignorado.
+- Não contam: vista de detalhe (DetailView), marca solta sem peça (rótulo de eixo) e vista geral que mostra balões de pelo menos 8 itens e de 60% ou mais dos itens sem decimal (o 3D da folha da lista de material).
+- Primeira leitura com a regra nova: os itens que o balão já encontra prontos entram no histórico sem tempo e sem sessão em andamento; item detalhado depois entra normalmente.
+- Aba de cota: item de posição única deixa de aparecer como "sem subitem".
+- Teste novo: tests/test_marca_inteira.py (35 verificações, sem Tekla).
+
 VERSÃO 43 - 14/08/2026
 - Corrigida a descrição exibida dos componentes no modo Por componente: agora a lista Detalhados e a guia Estatística usam a descrição da própria peça/subitem (ex.: CH. 10X55X300), em vez da descrição geral do conjunto (ex.: COAMING PLATE - 1° EL.).
 - A correção também atualiza os registros de Tempo por componente após a próxima análise, preservando tempos, banco, cache e histórico existentes.
